@@ -33,6 +33,18 @@ typedef struct InstructionNode
 } InstructionNode;
 typedef struct InstructionNode* InstructionNodePtr;
 
+int number_of_instructions(InstructionNodePtr head)
+{
+   InstructionNodePtr curr = head;
+   int c = 0;
+   while (curr != NULL)
+   {
+      c++;
+      curr = curr->next;
+   }
+   return c;
+}
+
 InstructionNodePtr parse_instructions(char *input)
 {
    char *word;
@@ -209,6 +221,7 @@ void parse_file(const char *input_file, const char *output_file)
          printf("\tParsing instructions.\n");
 
          curr_block->instructions = parse_instructions(line);
+         curr_block->size = number_of_instructions(curr_block->instructions);
 
          current_line_type = DEFINITION_LINE;
       }
