@@ -32,6 +32,38 @@ typedef struct InstructionNode
 } InstructionNode;
 typedef struct InstructionNode* InstructionNodePtr;
 
+SymbolNodePtr parse_symbols(char *input)
+{
+   char *word;
+   char *word_tokenizer;
+
+   SymbolNodePtr head, curr;
+
+   word = strtok_r(input, " ", &word_tokenizer);
+   int c = 0;
+   while (word != NULL)
+   {
+      if (c != 0)
+      {
+         SymbolNodePtr new = (SymbolNodePtr) malloc(sizeof(struct SymbolNode));
+         if (curr != NULL)
+            curr->next = new;
+
+         curr = new;
+
+         if (head == NULL)
+            head = curr;
+
+         new->name = strdup(word);
+      }
+
+      c++;
+      word = strtok_r(NULL, " ", &word_tokenizer);
+   }
+
+   return head;
+}
+
 SymbolNodePtr parse_definitions(char *input, SymbolNodePtr head)
 {
    char *word;
@@ -122,6 +154,8 @@ void parse_file(const char *input_file, const char *output_file)
       else if (current_line_type == SYMBOLS_LINE)
       {
          printf("\tParsing symbols.\n");
+
+         curr_block->symbols = parse_symbols(line);
 
          current_line_type = INSTRUCTION_LINE;
       }
