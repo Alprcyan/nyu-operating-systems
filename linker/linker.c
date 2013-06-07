@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include "readfile.h"
 
+enum {COUNT_STATE, PARSE_STATE};
 enum {DEFINITION_LINE, SYMBOLS_LINE, INSTRUCTION_LINE};
 enum {DEFINITION_NAME, DEFINITION_VALUE};
 enum {INSTRUCTION_TYPE, INSTRUCTION_VALUE};
@@ -44,6 +45,16 @@ int number_of_instructions(InstructionNodePtr head)
       curr = curr->next;
    }
    return c;
+}
+
+void interpret_symbols(SymbolNodePtr head_symbol)
+{
+   SymbolNodePtr curr = head_symbol;
+   while (curr != NULL)
+   {
+      printf("%s = %i\n", curr->name, curr->val);
+      curr = curr->next;
+   }
 }
 
 void interpret_blocks(BlockNodePtr head_block, SymbolNodePtr head_symbol)
@@ -109,6 +120,7 @@ InstructionNodePtr parse_instructions(char *input)
          if (curr_word_type == INSTRUCTION_TYPE)
          {
             InstructionNodePtr new = (InstructionNodePtr) malloc(sizeof(struct InstructionNode));
+            new->next = NULL;
             if (curr != NULL)
                curr->next = new;
 
@@ -150,6 +162,7 @@ SymbolNodePtr parse_symbols(char *input)
       if (c != 0)
       {
          SymbolNodePtr new = (SymbolNodePtr) malloc(sizeof(struct SymbolNode));
+         new->next = NULL;
          if (curr != NULL)
             curr->next = new;
 
@@ -189,13 +202,16 @@ SymbolNodePtr parse_definitions(char *input, SymbolNodePtr head, int mem_addr)
          if (curr_word_type == DEFINITION_NAME)
          {
             SymbolNodePtr new = (SymbolNodePtr) malloc(sizeof(struct SymbolNode));
+            new->next = NULL;
             if (curr != NULL)
                curr->next = new;
 
             curr = new;
 
             if (head == NULL)
+            {
                head = curr;
+            }
 
             curr->name = strdup(word);
 
@@ -216,68 +232,166 @@ SymbolNodePtr parse_definitions(char *input, SymbolNodePtr head, int mem_addr)
    return head;
 }
 
+char *combine(char *a, char *b)
+{
+   if (a == NULL)
+   {
+      return strdup(b);
+   }
+
+   int size = strlen(a) + strlen(b) + 1;
+   char *new = (char *) malloc(size);
+
+   strcpy(new, a);
+   strcat(new, b);
+
+   return new;
+}
+
 void parse_file(const char *input_file, const char *output_file)
 {
    char *contents = read_file(input_file);
 
-   char *line;
-   char *line_tokenizer;
+   char *word;
+   char *word_tokenizer;
 
    BlockNodePtr head_block = NULL;
    SymbolNodePtr head_symbol = NULL;
 
-   int current_line_type = DEFINITION_LINE;
+   int current_line_type = INSTRUCTION_LINE;
+   int word_state = COUNT_STATE;
    BlockNodePtr curr_block = NULL;
-   line = strtok_r(contents, "\n", &line_tokenizer);
+   word = strtok_r(contents, " \n\t", &word_tokenizer);
    int curr_mem_addr = 0;
-   while (line != NULL)
+   int def_count = 0;
+   char *def_count_string = NULL;
+   while (word != NULL)
    {
-      printf("Parsing Line: %s\n", line);
-
-      if (current_line_type == DEFINITION_LINE)
+      if (word_state == COUNT_STATE)
       {
-         printf("\tParsing definition.\n");
+         def_count = atoi(word);
+         def_count_string = strdup(word);
 
-         BlockNodePtr new_block = (BlockNodePtr) malloc(sizeof(struct BlockNode));
-
-         if (curr_block != NULL)
+         word_state = PARSE_STATE;
+         if (current_line_type == DEFINITION_LINE)
          {
-            curr_block->next = new_block;
-            curr_mem_addr += curr_block->size;
+            current_line_type = SYMBOLS_LINE;
+         }
+         else if (current_line_type == SYMBOLS_LINE)
+         {
+            current_line_type = INSTRUCTION_LINE;
+         }
+         else if (current_line_type == INSTRUCTION_LINE)
+         {
+            current_line_type = DEFINITION_LINE;
          }
 
-         curr_block = new_block;
-         curr_block->mem_addr = curr_mem_addr;
-
-         if (head_block == NULL)
+         word = strtok_r(NULL, " \n\t", &word_tokenizer);
+      }
+      else if (word_state == PARSE_STATE)
+      {
+         if (current_line_type == DEFINITION_LINE)
          {
-            head_block = curr_block;
+            BlockNodePtr new_block = (BlockNodePtr) malloc(sizeof(struct BlockNode));
+            new_block->next = NULL;
+
+            if (curr_block != NULL)
+            {
+               curr_block->next = new_block;
+               curr_mem_addr += curr_block->size;
+            }
+
+            curr_block = new_block;
+            curr_block->mem_addr = curr_mem_addr;
+
+            if (head_block == NULL)
+            {
+               head_block = curr_block;
+            }
+
+            int i = 0;
+            int c = DEFINITION_NAME;
+            char *line = combine(def_count_string, " ");
+            while (word != NULL && i < def_count)
+            {
+               if (c == DEFINITION_NAME)
+               {
+
+                  c = DEFINITION_VALUE;
+               }
+               else if (c == DEFINITION_VALUE)
+               {
+
+                  c = DEFINITION_NAME;
+                  i++;
+               }
+
+               line = combine(line, word);
+               if (i != def_count)
+                  line = combine(line, " ");
+
+               word = strtok_r(NULL, " \n\t", &word_tokenizer);
+            }
+
+            printf("%s\n", line);
+            head_symbol = parse_definitions(line, head_symbol, curr_mem_addr);
+         }
+         else if (current_line_type == SYMBOLS_LINE)
+         {
+            int i = 0;
+            char *line = combine(def_count_string, " ");
+            while (word != NULL && i < def_count)
+            {
+               i++;
+
+               line = combine(line, word);
+               if (i != def_count)
+                  line = combine(line, " ");
+
+               word = strtok_r(NULL, " \n\t", &word_tokenizer);
+            }
+
+            printf("%s\n", line);
+            curr_block->symbols = parse_symbols(line);
+         }
+         else if (current_line_type == INSTRUCTION_LINE)
+         {
+            int i = 0;
+            int c = INSTRUCTION_TYPE;
+            char *line = combine(def_count_string, " ");
+            while (word != NULL && i < def_count)
+            {
+               if (c == INSTRUCTION_TYPE)
+               {
+
+                  c = INSTRUCTION_VALUE;
+               }
+               else if (c == INSTRUCTION_VALUE)
+               {
+
+                  c = INSTRUCTION_TYPE;
+                  i++;
+               }
+
+               line = combine(line, word);
+               if (i != def_count)
+                  line = combine(line, " ");
+
+               word = strtok_r(NULL, " \n\t", &word_tokenizer);
+            }
+
+            printf("%s\n", line);
+            curr_block->instructions = parse_instructions(line);
+            curr_block->size = number_of_instructions(curr_block->instructions);
          }
 
-         head_symbol = parse_definitions(line, head_symbol, curr_mem_addr);
-
-         current_line_type = SYMBOLS_LINE;
+         word_state = COUNT_STATE;
       }
-      else if (current_line_type == SYMBOLS_LINE)
-      {
-         printf("\tParsing symbols.\n");
-
-         curr_block->symbols = parse_symbols(line);
-
-         current_line_type = INSTRUCTION_LINE;
-      }
-      else if (current_line_type == INSTRUCTION_LINE)
-      {
-         printf("\tParsing instructions.\n");
-
-         curr_block->instructions = parse_instructions(line);
-         curr_block->size = number_of_instructions(curr_block->instructions);
-
-         current_line_type = DEFINITION_LINE;
-      }
-
-      line = strtok_r(NULL, "\n", &line_tokenizer);
    }
 
+   printf("\nSYMBOL TABLE\n");
+   interpret_symbols(head_symbol);
+
+   printf("\nMEMORY MAP\n");
    interpret_blocks(head_block, head_symbol);
 }
