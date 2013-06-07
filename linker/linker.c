@@ -46,6 +46,52 @@ int number_of_instructions(InstructionNodePtr head)
    return c;
 }
 
+void interpret_blocks(BlockNodePtr head_block, SymbolNodePtr head_symbol)
+{
+   BlockNodePtr curr_block = head_block;
+   while (curr_block != NULL)
+   {
+      InstructionNodePtr curr_instruction = curr_block->instructions;
+      while (curr_instruction != NULL)
+      {
+         int new_mem_addr = curr_instruction->val;
+         if (strcmp(curr_instruction->instruction, "R") == 0)
+         {
+            new_mem_addr += curr_block->mem_addr;
+         }
+         else if (strcmp(curr_instruction->instruction, "E") == 0)
+         {
+            SymbolNodePtr curr_symbol = curr_block->symbols;
+
+            int c = 0;
+            while (c < new_mem_addr)
+            {
+               if (curr_symbol->next == NULL)
+                  curr_symbol = curr_block->symbols;
+               else
+                  curr_symbol = curr_symbol->next;
+
+               c++;
+            }
+            char *symbol = curr_symbol->name;
+
+            curr_symbol = head_symbol;
+            while(strcmp(symbol, curr_symbol->name))
+            {
+               curr_symbol = curr_symbol->next;
+            }
+
+            new_mem_addr += curr_symbol->val;
+         }
+         printf("%i\n", new_mem_addr);
+
+         curr_instruction = curr_instruction->next;
+      }
+
+      curr_block = curr_block->next;
+   }
+}
+
 InstructionNodePtr parse_instructions(char *input)
 {
    char *word;
@@ -128,7 +174,7 @@ SymbolNodePtr parse_definitions(char *input, SymbolNodePtr head, int mem_addr)
    char *word_tokenizer;
 
    SymbolNodePtr curr = head;
-   while(curr != NULL)
+   while(curr != NULL && curr->next != NULL)
    {
       curr = curr->next;
    }
@@ -151,7 +197,7 @@ SymbolNodePtr parse_definitions(char *input, SymbolNodePtr head, int mem_addr)
             if (head == NULL)
                head = curr;
 
-            new->name = strdup(word);
+            curr->name = strdup(word);
 
             curr_word_type = DEFINITION_VALUE;
          }
@@ -232,4 +278,6 @@ void parse_file(const char *input_file, const char *output_file)
 
       line = strtok_r(NULL, "\n", &line_tokenizer);
    }
+
+   interpret_blocks(head_block, head_symbol);
 }
