@@ -6,6 +6,7 @@
 
 enum {DEFINITION_LINE, SYMBOLS_LINE, INSTRUCTION_LINE};
 enum {DEFINITION_NAME, DEFINITION_VALUE};
+enum {INSTRUCTION_TYPE, INSTRUCTION_VALUE};
 
 typedef struct BlockNode
 {
@@ -31,6 +32,50 @@ typedef struct InstructionNode
    struct InstructionNode *next;
 } InstructionNode;
 typedef struct InstructionNode* InstructionNodePtr;
+
+InstructionNodePtr parse_instructions(char *input)
+{
+   char *word;
+   char *word_tokenizer;
+
+   InstructionNodePtr head, curr;
+
+   int curr_word_type = INSTRUCTION_TYPE;
+   word = strtok_r(input, " ", &word_tokenizer);
+   int c = 0;
+   while (word != NULL)
+   {
+      if (c != 0)
+      {
+         if (curr_word_type == INSTRUCTION_TYPE)
+         {
+            InstructionNodePtr new = (InstructionNodePtr) malloc(sizeof(struct InstructionNode));
+            if (curr != NULL)
+               curr->next = new;
+
+            curr = new;
+
+            if (head == NULL)
+               head = curr;
+
+            new->instruction = strdup(word);
+
+            curr_word_type = INSTRUCTION_VALUE;
+         }
+         else if (curr_word_type == INSTRUCTION_VALUE)
+         {
+            curr->val = atoi(word);
+
+            curr_word_type = INSTRUCTION_TYPE;
+         }
+      }
+
+      c++;
+      word = strtok_r(NULL, " ", &word_tokenizer);
+   }
+
+   return head;
+}
 
 SymbolNodePtr parse_symbols(char *input)
 {
@@ -162,6 +207,8 @@ void parse_file(const char *input_file, const char *output_file)
       else if (current_line_type == INSTRUCTION_LINE)
       {
          printf("\tParsing instructions.\n");
+
+         curr_block->instructions = parse_instructions(line);
 
          current_line_type = DEFINITION_LINE;
       }
