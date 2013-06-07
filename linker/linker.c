@@ -11,6 +11,7 @@ enum {INSTRUCTION_TYPE, INSTRUCTION_VALUE};
 typedef struct BlockNode
 {
    int size;
+   int mem_addr;
    struct SymbolNode *symbols;
    struct InstructionNode *instructions;
    struct BlockNode *next;
@@ -50,7 +51,7 @@ InstructionNodePtr parse_instructions(char *input)
    char *word;
    char *word_tokenizer;
 
-   InstructionNodePtr head, curr;
+   InstructionNodePtr head = NULL, curr = NULL;
 
    int curr_word_type = INSTRUCTION_TYPE;
    word = strtok_r(input, " ", &word_tokenizer);
@@ -94,7 +95,7 @@ SymbolNodePtr parse_symbols(char *input)
    char *word;
    char *word_tokenizer;
 
-   SymbolNodePtr head, curr;
+   SymbolNodePtr head = NULL, curr = NULL;
 
    word = strtok_r(input, " ", &word_tokenizer);
    int c = 0;
@@ -121,7 +122,7 @@ SymbolNodePtr parse_symbols(char *input)
    return head;
 }
 
-SymbolNodePtr parse_definitions(char *input, SymbolNodePtr head)
+SymbolNodePtr parse_definitions(char *input, SymbolNodePtr head, int mem_addr)
 {
    char *word;
    char *word_tokenizer;
@@ -156,7 +157,7 @@ SymbolNodePtr parse_definitions(char *input, SymbolNodePtr head)
          }
          else if (curr_word_type == DEFINITION_VALUE)
          {
-            curr->val = atoi(word);
+            curr->val = atoi(word) + mem_addr;
 
             curr_word_type = DEFINITION_NAME;
          }
@@ -182,6 +183,7 @@ void parse_file(const char *input_file, const char *output_file)
    int current_line_type = DEFINITION_LINE;
    BlockNodePtr curr_block = NULL;
    line = strtok_r(contents, "\n", &line_tokenizer);
+   int curr_mem_addr = 0;
    while (line != NULL)
    {
       printf("Parsing Line: %s\n", line);
@@ -195,16 +197,18 @@ void parse_file(const char *input_file, const char *output_file)
          if (curr_block != NULL)
          {
             curr_block->next = new_block;
+            curr_mem_addr += curr_block->size;
          }
 
          curr_block = new_block;
+         curr_block->mem_addr = curr_mem_addr;
 
          if (head_block == NULL)
          {
             head_block = curr_block;
          }
 
-         head_symbol = parse_definitions(line, head_symbol);
+         head_symbol = parse_definitions(line, head_symbol, curr_mem_addr);
 
          current_line_type = SYMBOLS_LINE;
       }
