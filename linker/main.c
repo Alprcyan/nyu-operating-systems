@@ -6,18 +6,17 @@
 
 int main(int argc, char **argv)
 {
-   if (argc < 3)
+   if (argc < 2)
    {
       printf("Missing arguments.\n");
-      printf("Usage: ./linker <input_file> <output_file>\n");
+      printf("Usage: ./linker <input_file>\n");
       return 0;
    }
 
    char * input_file = argv[1];
-   char * output_file = argv[2];
 
    // do something with the linker here.
-   parse_file(input_file, output_file);
+   parse_file(input_file);
 
    return 1;
 }
