@@ -46,16 +46,16 @@ typedef struct InstructionNode* InstructionNodePtr;
 void __parseerror(int linenum, int lineoffset, int errcode)
 {
    static char* errstr[] = {
-      "NUM_EXPECTED",
-      "SYM_EXPECTED",
-      "ADDR_EXPECTED",
-      "SYM_TOLONG",
-      "TO_MANY_DEF_IN_MODULE",
-      "TO_MANY_USE_IN_MODULE",
-      "TO_MANY_SYMBOLS",
-      "TO_MANY_INSTR"
+      "NUM_EXPECTED", // 0
+      "SYM_EXPECTED", // 1
+      "ADDR_EXPECTED", // 2
+      "SYM_TOLONG", // 3
+      "TO_MANY_DEF_IN_MODULE", // 4
+      "TO_MANY_USE_IN_MODULE", // 5
+      "TO_MANY_SYMBOLS", // 6
+      "TO_MANY_INSTR" // 7
    };
-   printf("Parse Error line_%i offset %i: %s\n", linenum, lineoffset, errstr[errcode]);
+   printf("Parse Error line %i offset %i: %s\n", linenum, lineoffset, errstr[errcode]);
 }
 
 int number_of_instructions(InstructionNodePtr head)
@@ -382,6 +382,18 @@ char *combine(char *a, char *b)
    return new;
 }
 
+int is_numeric(char *in)
+{
+   int i;
+   for (i = 0; i < strlen(in); i++)
+   {
+      if (in[i] < 48 || in[i] > 57)
+         return 0;
+   }
+
+   return 1;
+}
+
 void parse_file(const char *input_file)
 {
    char *contents = read_file(input_file);
@@ -421,6 +433,13 @@ void parse_file(const char *input_file)
          if (curr_count >= max_count)
          {
             curr_count = 0;
+
+            if (!is_numeric(new_word))
+            {
+               __parseerror(curr_line, curr_pos, 0);
+               return;
+            }
+
             max_count = atoi(new_word);
             max_count_str = new_word;
             // printf("%s\n", new_line);
@@ -467,9 +486,35 @@ void parse_file(const char *input_file)
                   head_block = curr_block;
                }
             }
+
+            if (curr_line_type == DEFINITION_LINE)
+            {
+               if (max_count > 16)
+               {
+                  __parseerror(curr_line, curr_pos, 4);
+                  return;
+               }
+            }
+            else if (curr_line_type == SYMBOLS_LINE)
+            {
+               if (max_count > 16)
+               {
+                  __parseerror(curr_line, curr_pos, 5);
+                  return;
+               }
+            }
+            else if (curr_line_type == INSTRUCTION_LINE)
+            {
+               if (curr_mem_addr + max_count > 512)
+               {
+                  __parseerror(curr_line, curr_pos, 7);
+                  return;
+               }
+            }
          }
          else
          {
+
             if (curr_line_type == DEFINITION_LINE)
             {
                if ((curr_count == 0 && curr_sub_type != DEFINITION_VALUE)
@@ -483,7 +528,11 @@ void parse_file(const char *input_file)
                }
                else if (curr_sub_type == DEFINITION_VALUE)
                {
-
+                  if (!is_numeric(new_word))
+                  {
+                     __parseerror(curr_line, curr_pos, 0);
+                     return;
+                  }
                   curr_count++;
                }
 
@@ -491,6 +540,12 @@ void parse_file(const char *input_file)
             }
             else if (curr_line_type == SYMBOLS_LINE)
             {
+               if (is_numeric(word))
+               {
+                  __parseerror(curr_line, curr_pos, 1);
+                  return;
+               }
+
                curr_count++;
             }
             else if (curr_line_type == INSTRUCTION_LINE)
@@ -506,6 +561,11 @@ void parse_file(const char *input_file)
                }
                else if (curr_sub_type == INSTRUCTION_VALUE)
                {
+                  if (!is_numeric(word) || (strlen(word) < 4 && strcmp(word, "0")))
+                  {
+                     __parseerror(curr_line, curr_pos, 2);
+                     return;
+                  }
 
                   curr_count++;
                }
@@ -524,6 +584,29 @@ void parse_file(const char *input_file)
 
       curr_line++;
       file = strtok_r(NULL, "\n", &file_tokenizer);
+   }
+
+   if (curr_line_type == DEFINITION_LINE)
+   {
+      __parseerror(--curr_line, --curr_pos, 1);
+      return;
+   }
+   else if (curr_line_type == SYMBOLS_LINE)
+   {
+      __parseerror(--curr_line, --curr_pos, 1);
+      return;
+   }
+   else if (curr_line_type == INSTRUCTION_LINE)
+   {
+      if (curr_count < max_count)
+      {
+         if (curr_sub_type == INSTRUCTION_VALUE)
+            __parseerror(--curr_line, --curr_pos, 1);
+         else
+            __parseerror(--curr_line, --curr_pos, 2);
+
+         return;
+      }
    }
 
    curr_block->instructions = parse_instructions(new_line);
