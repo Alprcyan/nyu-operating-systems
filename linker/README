@@ -1,0 +1,7 @@
+Compile by:
+make clean; make
+
+Run by:
+./linker <input>
+
+It will output to stdout.

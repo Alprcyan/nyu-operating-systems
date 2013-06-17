@@ -394,12 +394,42 @@ int is_numeric(char *in)
    return 1;
 }
 
+char *trimwhitespace(char *str)
+{
+  char *end;
+
+  // Trim leading space
+  while(isspace(*str)) str++;
+
+  if(*str == 0)  // All spaces?
+    return str;
+
+  // Trim trailing space
+  end = str + strlen(str) - 1;
+  while(end > str && isspace(*end)) end--;
+
+  // Write new null terminator
+  *(end+1) = 0;
+
+  return str;
+}
+
+/*
+ * THIS IS PASS 1.
+ * Basically what this does is take an entire file
+ * and create two tokenizers on it. One that separates
+ * per line and the other that separates by other white
+ * spaces. This is done to log what position each thing
+ * was found in. It creates a LL data structure which
+ * contains key parts as listed above. It then passes
+ * this "object" to PART 2 to parse out the data sture
+ * and print to stdout.
+ */
 void parse_file(const char *input_file)
 {
    char *contents = read_file(input_file);
 
    char *file;
-   char *file_tokenizer;
 
    char *word;
    char *word_tokenizer;
@@ -413,7 +443,7 @@ void parse_file(const char *input_file)
    char* new_line;
    char* new_def_line;
    char* new_sym_line;
-   int curr_line = 1;
+   int curr_line = 0;
    int curr_pos = 1;
    int curr_count = 0;
    int max_count = 0;
@@ -422,14 +452,25 @@ void parse_file(const char *input_file)
    int block_num = 1;
    int curr_mem_addr = 0;
 
-   file = strtok_r(contents, "\n", &file_tokenizer);
+   // contents = trimwhitespace(contents);
+
+   // strsep helps us identify empty lines
+   file = strsep(&contents, "\n");
    while (file != NULL)
    {
-      curr_pos = 1;
+      curr_line++;
+
       word = strtok_r(file, " \t", &word_tokenizer);
+
+      if (word != NULL)
+         curr_pos = 1;
+
       while (word != NULL)
       {
          new_word = strdup(word);
+         // we create the next node of the LL
+         // here and identify how many tokens
+         // we expect next.
          if (curr_count >= max_count)
          {
             curr_count = 0;
@@ -487,6 +528,7 @@ void parse_file(const char *input_file)
                }
             }
 
+            // Determine here if its too big for our machine.
             if (curr_line_type == DEFINITION_LINE)
             {
                if (max_count > 16)
@@ -512,9 +554,11 @@ void parse_file(const char *input_file)
                }
             }
          }
+         // We start parsing the symbols, definitions
+         // and instructions here. We also do PARSE error
+         // condition handling here.
          else
          {
-
             if (curr_line_type == DEFINITION_LINE)
             {
                if ((curr_count == 0 && curr_sub_type != DEFINITION_VALUE)
@@ -524,7 +568,8 @@ void parse_file(const char *input_file)
 
                if (curr_sub_type == DEFINITION_NAME)
                {
-
+                  if (strlen(word) > 32)
+                     return __parseerror(curr_line, curr_pos, 3);
                }
                else if (curr_sub_type == DEFINITION_VALUE)
                {
@@ -540,6 +585,9 @@ void parse_file(const char *input_file)
             }
             else if (curr_line_type == SYMBOLS_LINE)
             {
+               if (strlen(word) > 32)
+                  return __parseerror(curr_line, curr_pos, 3);
+
                if (is_numeric(word))
                {
                   __parseerror(curr_line, curr_pos, 1);
@@ -582,8 +630,7 @@ void parse_file(const char *input_file)
          word = strtok_r(NULL, " \t", &word_tokenizer);
       }
 
-      curr_line++;
-      file = strtok_r(NULL, "\n", &file_tokenizer);
+      file = strsep(&contents, "\n");
    }
 
    if (curr_line_type == DEFINITION_LINE)
