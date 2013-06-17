@@ -97,6 +97,10 @@ void interpret_symbols(SymbolNodePtr head_symbol)
    }
 }
 
+/**
+ * THIS IS PASS 2, this interprets the data structure and outputs
+ * outside.
+ */
 void interpret_blocks(BlockNodePtr head_block, SymbolNodePtr head_symbol)
 {
    BlockNodePtr curr_block = head_block;
@@ -451,6 +455,7 @@ void parse_file(const char *input_file)
    char *new_word;
    int block_num = 1;
    int curr_mem_addr = 0;
+   int previous_was_null = 0;
 
    // contents = trimwhitespace(contents);
 
@@ -462,8 +467,15 @@ void parse_file(const char *input_file)
 
       word = strtok_r(file, " \t", &word_tokenizer);
 
-      if (word != NULL)
+      if (word != NULL || previous_was_null)
+      {
          curr_pos = 1;
+         previous_was_null = 0;
+      }
+      else
+      {
+         previous_was_null = 1;
+      }
 
       while (word != NULL)
       {
@@ -632,6 +644,9 @@ void parse_file(const char *input_file)
 
       file = strsep(&contents, "\n");
    }
+
+   if (curr_pos == 1)
+      curr_pos = 2;
 
    if (curr_line_type == DEFINITION_LINE)
    {

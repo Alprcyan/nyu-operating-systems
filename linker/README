@@ -5,3 +5,6 @@ Run by:
 ./linker <input>
 
 It will output to stdout.
+
+There's two passes, first one parses into the data strucutre
+The other parses out the data structure and the output

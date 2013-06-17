@@ -22,4 +22,4 @@ clean :
 	rm -rf *.o *.a linker
 
 tar :
-	tar -pczf linker.tgz *
+	tar -pczf steven_lu_lab_1.tgz *
