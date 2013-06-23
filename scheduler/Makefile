@@ -6,9 +6,9 @@ LIB=
 
 .PHONY: doc clean
 
-all : scheduler
+all : sched
 
-scheduler : $(OBJS)
+sched : $(OBJS)
 	$(CC) $(LIB) $(OBJS) -o $@
 
 .c.o : $(SRCS)
@@ -19,7 +19,7 @@ doc :
 	rm -rf *.aux *.log *.out
 
 clean : 
-	rm -rf *.o *.a scheduler
+	rm -rf *.o *.a sched
 
 tar :
 	tar -pczf steven_lu_lab_2.tgz *

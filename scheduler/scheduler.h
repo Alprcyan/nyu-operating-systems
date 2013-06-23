@@ -6,9 +6,18 @@
 #include <string.h>
 #include <ctype.h>
 #include "readfile.h"
+#include "randnum.h"
 
-// pretty standard operation on reading files
-// into memory. fopen, fseek, etc.
-char* read_file(const char *filename);
+typedef struct ProcNode
+{
+	int arrival_time;
+	int total_cpu_time;
+	int cpu_burst;
+	int io_burst;
+	struct ProcNode *next;
+} ProcNode;
+typedef struct ProcNode* ProcNodePtr;
+
+ProcNodePtr read_proc_file(const char *filename);
 
 #endif
