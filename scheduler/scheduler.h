@@ -33,7 +33,7 @@ typedef struct SetNode* SetNodePtr;
 
 void read_out(ProcNodePtr proc_head, SetNodePtr set_head);
 ProcNodePtr read_proc_file(const char *filename);
-SetNodePtr fcfs(ProcNodePtr proc_head);
-SetNodePtr lcfs(ProcNodePtr proc_head);
+void fcfs(ProcNodePtr proc_head);
+void lcfs(ProcNodePtr proc_head);
 
 #endif

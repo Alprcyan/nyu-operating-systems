@@ -48,21 +48,16 @@ int main(int argc, char **argv)
 
 	// printf("Reading proc file...\n");
 	ProcNodePtr head_proc = read_proc_file(input_file);
-
-	SetNodePtr head_set = NULL;
 	if (alg == 'L')
 	{
 		printf("LCFS\n");
-		head_set = lcfs(head_proc);
+		lcfs(head_proc);
 	}
 	else if (alg == 'F')
 	{
 		printf("FCFS\n");
-		head_set = fcfs(head_proc);
+		fcfs(head_proc);
 	}
-
-
-	read_out(head_proc, head_set);
 
 	return 1;
 }

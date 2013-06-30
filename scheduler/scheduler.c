@@ -32,8 +32,14 @@ typedef struct SetNode
 } SetNode;
 typedef struct SetNode* SetNodePtr;
 
-void read_out(ProcNodePtr proc_head, SetNodePtr set_head)
+void read_out(ProcNodePtr proc_head, SetNodePtr set_head, int total_io_wait_time)
 {
+	int ended = 0;
+	int total_cpu_time = 0;
+	int total_turnaround_time;
+	int number_of_sets = 0;
+	int total_cpu_waiting = 0;
+
 	ProcNodePtr proc_ptr = proc_head;
 	while (proc_ptr != NULL)
 	{
@@ -46,6 +52,24 @@ void read_out(ProcNodePtr proc_head, SetNodePtr set_head)
 			set_ptr = set_ptr->next;
 		}
 
+		int this_set_ended =
+			proc_ptr->arrival_time
+			+ proc_ptr->total_cpu_time
+			+ set_ptr->wait_time
+			+ set_ptr->io_time;
+
+		int this_total_time =
+			proc_ptr->total_cpu_time
+			+ set_ptr->wait_time
+			+ set_ptr->io_time;
+
+		if (this_set_ended > ended)
+			ended = this_set_ended;
+
+		total_cpu_time += this_total_time - (set_ptr->io_time + set_ptr->wait_time);
+		total_turnaround_time += this_total_time;
+		total_cpu_waiting += set_ptr->wait_time;
+
 		// print out stuff here
 		printf(
 			"%04d:\t%d\t%d\t%d\t%d\t|\t%d\t%d\t%d\t%d\n",
@@ -54,14 +78,24 @@ void read_out(ProcNodePtr proc_head, SetNodePtr set_head)
 			proc_ptr->total_cpu_time,
 			proc_ptr->cpu_burst,
 			proc_ptr->io_burst,
-			proc_ptr->arrival_time + proc_ptr->total_cpu_time + set_ptr->wait_time + set_ptr->io_time,
-			proc_ptr->total_cpu_time + set_ptr->wait_time + set_ptr->io_time,
+			this_set_ended,
+			this_total_time,
 			set_ptr->io_time,
 			set_ptr->wait_time
 		);
 
 		proc_ptr = proc_ptr->next;
+		number_of_sets++;
 	}
+
+	printf("SUM:\t%d\t%.2lf\t%.2lf\t%.2lf\t%.2lf\t%.3lf\n",
+		ended,
+		(float) total_cpu_time/ended * 100,
+		(float) total_io_wait_time/ended * 100,
+		(float) total_turnaround_time/number_of_sets,
+		(float) total_cpu_waiting/number_of_sets,
+		(float) 0
+	);
 }
 
 ProcNodePtr read_proc_file(const char *input_file)
@@ -163,9 +197,11 @@ SetNodePtr add_to_end(SetNodePtr head, SetNodePtr node)
 	return head;
 }
 
-SetNodePtr fcfs(ProcNodePtr proc_head)
+void fcfs(ProcNodePtr proc_head)
 {
 	int cpu_count = 0;
+
+	int time_spent_in_io = 0;
 
 	SetNodePtr ready_set_head = NULL;
 	SetNodePtr blocked_set_head = NULL;
@@ -196,6 +232,11 @@ SetNodePtr fcfs(ProcNodePtr proc_head)
 
 			proc_ptr = proc_ptr->next;
 		}
+
+		// This is for caveat purposes, need to detect how much
+		// time we've spent in IO waiting.
+		if (blocked_set_head != NULL)
+			time_spent_in_io++;
 
 		// Decrease io_wait remaining on all blocked.
 		SetNodePtr blocked_set_ptr = blocked_set_head;
@@ -280,12 +321,14 @@ SetNodePtr fcfs(ProcNodePtr proc_head)
 		cpu_count++;
 	}
 
-	return done_set_head;
+	read_out(proc_head, done_set_head, time_spent_in_io);
 }
 
-SetNodePtr lcfs(ProcNodePtr proc_head)
+void lcfs(ProcNodePtr proc_head)
 {
 	int cpu_count = 0;
+
+	int time_spent_in_io = 0;
 
 	SetNodePtr ready_set_head = NULL;
 	SetNodePtr blocked_set_head = NULL;
@@ -316,6 +359,11 @@ SetNodePtr lcfs(ProcNodePtr proc_head)
 
 			proc_ptr = proc_ptr->next;
 		}
+
+		// This is for caveat purposes, need to detect how much
+		// time we've spent in IO waiting.
+		if (blocked_set_head != NULL)
+			time_spent_in_io++;
 
 		// Decrease io_wait remaining on all blocked.
 		SetNodePtr blocked_set_ptr = blocked_set_head;
@@ -408,5 +456,5 @@ SetNodePtr lcfs(ProcNodePtr proc_head)
 		cpu_count++;
 	}
 
-	return done_set_head;
+	read_out(proc_head, done_set_head, time_spent_in_io);
 }
