@@ -34,14 +34,29 @@ int main(int argc, char **argv)
         else if (strstr(argv[i], "-sR"))
         	alg = 'R';
         else
-        	if (input_file)
+        	if (input_file == NULL)
 	        	input_file = argv[i];
 	        else
 	        	rand_file = argv[i];
     }
 
+    // printf("FILE: %s\n", input_file);
+    // printf("RAND: %s\n", rand_file);
+
+    // printf("Reading rand file...\n");
 	read_rand_file(rand_file);
-	read_proc_file(input_file);
+
+	// printf("Reading proc file...\n");
+	ProcNodePtr head_proc = read_proc_file(input_file);
+
+	SetNodePtr head_set = NULL;
+	if (alg == 'F')
+	{
+		printf("FCFS\n");
+		head_set = fcfs(head_proc);
+	}
+
+	read_out(head_proc, head_set);
 
 	return 1;
 }

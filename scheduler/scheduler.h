@@ -18,6 +18,21 @@ typedef struct ProcNode
 } ProcNode;
 typedef struct ProcNode* ProcNodePtr;
 
+typedef struct SetNode
+{
+	int cpu_time_left;
+	int io_time_left;
+	int wait_time;
+	int io_time;
+	int completed_time;
+	int state;
+	struct SetNode *next;
+	struct ProcNode *proc;
+} SetNode;
+typedef struct SetNode* SetNodePtr;
+
+void read_out(ProcNodePtr proc_head, SetNodePtr set_head);
 ProcNodePtr read_proc_file(const char *filename);
+SetNodePtr fcfs(ProcNodePtr proc_head);
 
 #endif

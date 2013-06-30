@@ -10,10 +10,12 @@ enum {STATE_RUNNING, STATE_READY, STATE_BLOCKED, STATE_COMPLETED};
 
 typedef struct ProcNode
 {
+	int id;
 	int arrival_time;
 	int total_cpu_time;
 	int cpu_burst;
 	int io_burst;
+	int arrived;
 	struct ProcNode *next;
 } ProcNode;
 typedef struct ProcNode* ProcNodePtr;
@@ -21,11 +23,10 @@ typedef struct ProcNode* ProcNodePtr;
 typedef struct SetNode
 {
 	int cpu_time_left;
+	int cpu_burst_left;
 	int io_time_left;
 	int wait_time;
 	int io_time;
-	int completed_time;
-	int state;
 	struct SetNode *next;
 	struct ProcNode *proc;
 } SetNode;
@@ -33,122 +34,34 @@ typedef struct SetNode* SetNodePtr;
 
 void read_out(ProcNodePtr proc_head, SetNodePtr set_head)
 {
-
-}
-
-int is_completed(ProcNodePtr proc_head, SetNodePtr set_head)
-{
-	int set_count = 0;
-	SetNodePtr set_ptr = set_head;
-	while(set_ptr != NULL)
-	{
-		if (set_ptr->state != STATE_COMPLETED)
-			return 0;
-
-		set_count++;
-		set_ptr = set_ptr->next;
-	}
-
-	int proc_count = 0;
 	ProcNodePtr proc_ptr = proc_head;
-	while(proc_ptr != NULL)
+	while (proc_ptr != NULL)
 	{
-		proc_count++;
-		proc_ptr = proc_ptr->next;
-	}
-
-	if (proc_count == set_count)
-		return 1;
-
-	return 0;
-}
-
-SetNodePtr fcfs(ProcNodePtr proc_head)
-{
-	int cpu_clock = 0;
-
-	SetNodePtr set_head = NULL;
-	SetNodePtr curr_set = NULL;
-
-	int cpu_burst = 0;
-
-	while(is_completed(proc_head, set_head) == 0)
-	{
-		ProcNodePtr proc_ptr = proc_head;
-		while(proc_ptr != NULL)
-		{
-			if (proc_ptr->arrival_time >= cpu_clock)
-			{
-				SetNodePtr new_set = (SetNodePtr) malloc(sizeof(struct SetNode));
-				new_set->cpu_time_left = proc_ptr->total_cpu_time;
-				new_set->wait_time = 0;
-				new_set->io_time = 0;
-				new_set->state = STATE_READY;
-				new_set->proc = proc_ptr;
-
-				if (curr_set != NULL)
-					curr_set->next = new_set;
-
-				curr_set = new_set;
-
-				if (set_head == NULL)
-					set_head = curr_set;
-			}
-
-			proc_ptr = proc_ptr->next;
-		}
-
 		SetNodePtr set_ptr = set_head;
 		while(set_ptr != NULL)
 		{
-			if (set_ptr->cpu_time_left >= 0 && set_ptr->io_time_left <= 0)
+			if (set_ptr->proc == proc_ptr)
 				break;
 
 			set_ptr = set_ptr->next;
 		}
 
-		if (set_ptr == NULL)
-		{
-			cpu_burst++;
-			continue;
-		}
+		// print out stuff here
+		printf(
+			"%04d:\t%d\t%d\t%d\t%d\t|\t%d\t%d\t%d\t%d\n",
+			proc_ptr->id,
+			proc_ptr->arrival_time,
+			proc_ptr->total_cpu_time,
+			proc_ptr->cpu_burst,
+			proc_ptr->io_burst,
+			proc_ptr->arrival_time + proc_ptr->total_cpu_time + set_ptr->wait_time + set_ptr->io_time,
+			proc_ptr->total_cpu_time + set_ptr->wait_time + set_ptr->io_time,
+			set_ptr->io_time,
+			set_ptr->wait_time
+		);
 
-		SetNodePtr running_set = set_ptr;
-
-		cpu_burst = rand_num(running_set->proc->cpu_burst);
-		if (running_set->cpu_time_left > cpu_burst)
-		{
-			running_set->cpu_time_left -= cpu_burst;
-			running_set->io_time_left = rand_num(running_set->proc->io_burst);
-			running_set->state = STATE_BLOCKED;
-		}
-		else
-		{
-			cpu_burst = running_set->cpu_time_left;
-			running_set->cpu_time_left = 0;
-			running_set->state = STATE_COMPLETED;
-		}
-
-		set_ptr = set_head;
-		while(set_ptr != NULL)
-		{
-			if (set_ptr == running_set)
-				continue;
-
-			if (set_ptr->io_time_left > cpu_burst)
-			{
-				set_ptr->io_time_left -= cpu_burst;
-			}
-			else
-			{
-				set_ptr->wait_time += (cpu_burst - set_ptr->io_time_left);
-				set_ptr->io_time_left = 0;
-				set_ptr->state = STATE_READY;
-			}
-		}
+		proc_ptr = proc_ptr->next;
 	}
-
-	return set_head;
 }
 
 ProcNodePtr read_proc_file(const char *input_file)
@@ -162,13 +75,18 @@ ProcNodePtr read_proc_file(const char *input_file)
 	int curr_type = AT;
 	char *contents = read_file(input_file);
 	token = strtok_r(contents, " \n\t", &tokenizer);
+	int c = 0;
 	while (token != NULL)
 	{
-		int numeric_token = atoi(token);
+		int numeric_token = atoi(token);;
 
 		if (curr_type == AT)
 		{
 			ProcNodePtr new_proc = (ProcNodePtr) malloc(sizeof(struct ProcNode));
+			new_proc->arrived = 0;
+			new_proc->next = NULL;
+			new_proc->id = c;
+			c++;
 
 			if (curr != NULL)
 				curr->next = new_proc;
@@ -199,4 +117,168 @@ ProcNodePtr read_proc_file(const char *input_file)
 	}
 
 	return head;
+}
+
+int is_completed(ProcNodePtr proc_head, SetNodePtr set_head)
+{
+	int set_count = 0;
+	SetNodePtr set_ptr = set_head;
+	while(set_ptr != NULL)
+	{
+		set_count++;
+		set_ptr = set_ptr->next;
+	}
+
+	int proc_count = 0;
+	ProcNodePtr proc_ptr = proc_head;
+	while(proc_ptr != NULL)
+	{
+		proc_count++;
+		proc_ptr = proc_ptr->next;
+	}
+
+	if (proc_count == set_count)
+		return 1;
+
+	return 0;
+}
+
+SetNodePtr add_to_end(SetNodePtr head, SetNodePtr node)
+{
+	SetNodePtr set_ptr = head;
+	SetNodePtr prev_set_ptr = NULL;
+	while (set_ptr != NULL)
+	{
+		prev_set_ptr = set_ptr;
+		set_ptr = set_ptr->next;
+	}
+
+	if (prev_set_ptr == NULL)
+		head = node;
+	else
+		prev_set_ptr->next = node;
+
+	node->next = NULL;
+
+	return head;
+}
+
+SetNodePtr fcfs(ProcNodePtr proc_head)
+{
+	int cpu_count = 0;
+
+	SetNodePtr ready_set_head = NULL;
+	SetNodePtr blocked_set_head = NULL;
+	SetNodePtr done_set_head = NULL;
+	SetNodePtr running_set = NULL;
+
+	while (is_completed(proc_head, done_set_head) == 0)
+	{
+		// Finding all things that are ready.
+		ProcNodePtr proc_ptr = proc_head;
+		// printf("(%d)\t", cpu_count);
+
+		while (proc_ptr != NULL)
+		{
+			if (proc_ptr->arrival_time == cpu_count)
+			{
+				SetNodePtr new_set = (SetNodePtr) malloc(sizeof(struct SetNode));
+				new_set->cpu_time_left = proc_ptr->total_cpu_time;
+				new_set->io_time_left = 0;
+				new_set->wait_time = 0;
+				new_set->io_time = 0;
+				new_set->proc = proc_ptr;
+				new_set->next = NULL;
+
+				ready_set_head = add_to_end(ready_set_head, new_set);
+				// printf("\tREADY: %d", proc_ptr->id);
+			}
+
+			proc_ptr = proc_ptr->next;
+		}
+
+		// Decrease io_wait remaining on all blocked.
+		SetNodePtr blocked_set_ptr = blocked_set_head;
+		SetNodePtr prev_blocked_set_ptr = NULL;
+		while (blocked_set_ptr != NULL)
+		{
+			blocked_set_ptr->io_time_left--;
+			blocked_set_ptr->io_time++;
+
+			if (blocked_set_ptr->io_time_left == 0)
+			{
+				SetNodePtr next = blocked_set_ptr->next;
+
+				if (prev_blocked_set_ptr == NULL)
+					blocked_set_head = next;
+				else
+					prev_blocked_set_ptr->next = next;
+
+				ready_set_head = add_to_end(ready_set_head, blocked_set_ptr);
+				// printf("\tREADY: %d", blocked_set_ptr->proc->id);
+				blocked_set_ptr = next;
+				continue;
+			}
+
+			prev_blocked_set_ptr = blocked_set_ptr;
+			blocked_set_ptr = blocked_set_ptr->next;
+		}
+
+		// Decrease cpu time on current
+		if (running_set != NULL)
+		{
+			running_set->cpu_burst_left--;
+			running_set->cpu_time_left--;
+
+			if (running_set->cpu_burst_left == 0 || running_set->cpu_time_left == 0)
+			{
+
+				if (running_set->cpu_time_left == 0)
+				{
+					// printf("\tDONE: %d", running_set->proc->id);
+					done_set_head = add_to_end(done_set_head, running_set);
+				}
+				else
+				{
+					// printf("\tEXPIRED: %d", running_set->proc->id);
+					// add it to the blocked queue
+					// printf("\tREM: %d", running_set->cpu_time_left);
+					running_set->io_time_left = rand_num(running_set->proc->io_burst);
+					// printf("\tIO: %d", running_set->io_time_left);
+					blocked_set_head = add_to_end(blocked_set_head, running_set);
+				}
+
+				running_set = NULL;
+			}
+		}
+
+		// Lets pop one off the ready_set_head
+		if (running_set == NULL)
+		{
+			if (ready_set_head != NULL)
+			{
+				running_set = ready_set_head;
+				ready_set_head = ready_set_head->next;
+				running_set->next = NULL;
+
+				int randnum = rand_num(running_set->proc->cpu_burst);
+				running_set->cpu_burst_left = randnum;
+				// printf("\tCPU: %d", running_set->cpu_burst_left);
+				// printf("\tRUNNING: %d", running_set->proc->id);
+			}
+		}
+
+		// Increment ready state wait.
+		SetNodePtr ready_set_ptr = ready_set_head;
+		while (ready_set_ptr != NULL)
+		{
+			ready_set_ptr->wait_time++;
+			ready_set_ptr = ready_set_ptr->next;
+		}
+
+		// printf("\n");
+		cpu_count++;
+	}
+
+	return done_set_head;
 }
