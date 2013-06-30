@@ -282,3 +282,131 @@ SetNodePtr fcfs(ProcNodePtr proc_head)
 
 	return done_set_head;
 }
+
+SetNodePtr lcfs(ProcNodePtr proc_head)
+{
+	int cpu_count = 0;
+
+	SetNodePtr ready_set_head = NULL;
+	SetNodePtr blocked_set_head = NULL;
+	SetNodePtr done_set_head = NULL;
+	SetNodePtr running_set = NULL;
+
+	while (is_completed(proc_head, done_set_head) == 0)
+	{
+		// Finding all things that are ready.
+		ProcNodePtr proc_ptr = proc_head;
+		// printf("(%d)\t", cpu_count);
+
+		while (proc_ptr != NULL)
+		{
+			if (proc_ptr->arrival_time == cpu_count)
+			{
+				SetNodePtr new_set = (SetNodePtr) malloc(sizeof(struct SetNode));
+				new_set->cpu_time_left = proc_ptr->total_cpu_time;
+				new_set->io_time_left = 0;
+				new_set->wait_time = 0;
+				new_set->io_time = 0;
+				new_set->proc = proc_ptr;
+				new_set->next = NULL;
+
+				ready_set_head = add_to_end(ready_set_head, new_set);
+				// printf("\tREADY: %d", proc_ptr->id);
+			}
+
+			proc_ptr = proc_ptr->next;
+		}
+
+		// Decrease io_wait remaining on all blocked.
+		SetNodePtr blocked_set_ptr = blocked_set_head;
+		SetNodePtr prev_blocked_set_ptr = NULL;
+		while (blocked_set_ptr != NULL)
+		{
+			blocked_set_ptr->io_time_left--;
+			blocked_set_ptr->io_time++;
+
+			if (blocked_set_ptr->io_time_left == 0)
+			{
+				SetNodePtr next = blocked_set_ptr->next;
+
+				if (prev_blocked_set_ptr == NULL)
+					blocked_set_head = next;
+				else
+					prev_blocked_set_ptr->next = next;
+
+				ready_set_head = add_to_end(ready_set_head, blocked_set_ptr);
+				// printf("\tREADY: %d", blocked_set_ptr->proc->id);
+				blocked_set_ptr = next;
+				continue;
+			}
+
+			prev_blocked_set_ptr = blocked_set_ptr;
+			blocked_set_ptr = blocked_set_ptr->next;
+		}
+
+		// Decrease cpu time on current
+		if (running_set != NULL)
+		{
+			running_set->cpu_burst_left--;
+			running_set->cpu_time_left--;
+
+			if (running_set->cpu_burst_left == 0 || running_set->cpu_time_left == 0)
+			{
+
+				if (running_set->cpu_time_left == 0)
+				{
+					// printf("\tDONE: %d", running_set->proc->id);
+					done_set_head = add_to_end(done_set_head, running_set);
+				}
+				else
+				{
+					// printf("\tEXPIRED: %d", running_set->proc->id);
+					// add it to the blocked queue
+					// printf("\tREM: %d", running_set->cpu_time_left);
+					running_set->io_time_left = rand_num(running_set->proc->io_burst);
+					// printf("\tIO: %d", running_set->io_time_left);
+					blocked_set_head = add_to_end(blocked_set_head, running_set);
+				}
+
+				running_set = NULL;
+			}
+		}
+
+		// Lets pop one off from the end. LCFS.
+		if (running_set == NULL)
+		{
+			if (ready_set_head != NULL)
+			{
+				SetNodePtr running_set_ptr = ready_set_head;
+				SetNodePtr prev_running_set_ptr = NULL;
+				while (running_set_ptr->next != NULL)
+				{
+					prev_running_set_ptr = running_set_ptr;
+					running_set_ptr = running_set_ptr->next;
+				}
+
+				if (prev_running_set_ptr == NULL)
+					ready_set_head = NULL;
+				else
+					prev_running_set_ptr->next = NULL;
+
+				running_set = running_set_ptr;
+				running_set->next = NULL;
+				running_set->cpu_burst_left = rand_num(running_set->proc->cpu_burst);
+			}
+		}
+
+		// Increment ready state wait.
+		SetNodePtr ready_set_ptr = ready_set_head;
+		while (ready_set_ptr != NULL)
+		{
+			ready_set_ptr->wait_time++;
+			ready_set_ptr = ready_set_ptr->next;
+		}
+
+		// printf("\n");
+		cpu_count++;
+	}
+
+	return done_set_head;
+}
