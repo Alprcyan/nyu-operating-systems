@@ -5,6 +5,11 @@
 #include "scheduler.h"
 #include "randnum.h"
 
+char* substr(const char* str, size_t begin, size_t len)
+{
+  return strndup(str + begin, len);
+}
+
 int main(int argc, char **argv)
 {
 	if (argc < 3)
@@ -19,6 +24,7 @@ int main(int argc, char **argv)
 	// S: Shortest Job first
 
 	char alg = 'F';
+	char *arg_for_rr = NULL;
 	char *input_file;
 	char *rand_file;
 
@@ -32,7 +38,10 @@ int main(int argc, char **argv)
         else if (strcmp(argv[i], "-sS") == 0)
         	alg = 'S';
         else if (strstr(argv[i], "-sR"))
+        {
         	alg = 'R';
+        	arg_for_rr = argv[i];
+        }
         else
         	if (input_file == NULL)
 	        	input_file = argv[i];
@@ -62,6 +71,12 @@ int main(int argc, char **argv)
 	{
 		printf("SJF\n");
 		sjf(head_proc);
+	}
+	else if (alg == 'R')
+	{
+		int interval = atoi(substr(arg_for_rr, 3, strlen(arg_for_rr)));
+		printf("R%d\n", interval);
+		rr(head_proc, interval);
 	}
 
 	return 1;

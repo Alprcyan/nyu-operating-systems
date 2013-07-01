@@ -36,5 +36,6 @@ ProcNodePtr read_proc_file(const char *filename);
 void fcfs(ProcNodePtr proc_head);
 void lcfs(ProcNodePtr proc_head);
 void sjf(ProcNodePtr proc_head);
+void rr(ProcNodePtr proc_head, int interval);
 
 #endif

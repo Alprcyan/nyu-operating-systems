@@ -111,7 +111,7 @@ void print_out(ProcNodePtr proc_head, SetNodePtr set_head, int total_io_wait_tim
 		(float) total_io_wait_time/ended * 100,
 		(float) total_turnaround_time/number_of_sets,
 		(float) total_cpu_waiting/number_of_sets,
-		(float) 0
+		(float) number_of_sets / (float) ended * 100
 	);
 }
 
@@ -625,4 +625,9 @@ void sjf(ProcNodePtr proc_head)
 	}
 
 	print_out(proc_head, done_set_head, time_spent_in_io);
+}
+
+void rr(ProcNodePtr proc_head, int interval)
+{
+
 }
