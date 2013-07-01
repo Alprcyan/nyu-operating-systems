@@ -25,8 +25,8 @@ int main(int argc, char **argv)
 
 	char alg = 'F';
 	char *arg_for_rr = NULL;
-	char *input_file;
-	char *rand_file;
+	char *input_file = NULL;
+	char *rand_file = NULL;
 
 	int i;
     for (i = 1; i < argc; i++)  /* Skip argv[0] (program name). */
@@ -44,13 +44,13 @@ int main(int argc, char **argv)
         }
         else
         	if (input_file == NULL)
-	        	input_file = argv[i];
+	        	input_file = strdup(argv[i]);
 	        else
 	        	rand_file = argv[i];
     }
 
-    // printf("FILE: %s\n", input_file);
-    // printf("RAND: %s\n", rand_file);
+   // printf("FILE: %s\n", input_file);
+   // printf("RAND: %s\n", rand_file);
 
     // printf("Reading rand file...\n");
 	read_rand_file(rand_file);

@@ -130,6 +130,7 @@ ProcNodePtr read_proc_file(const char *input_file)
 	while (token != NULL)
 	{
 		int numeric_token = atoi(token);;
+      //printf("%d\n", numeric_token);
 
 		if (curr_type == AT)
 		{
