@@ -75,7 +75,7 @@ int main(int argc, char **argv)
 	else if (alg == 'R')
 	{
 		int interval = atoi(substr(arg_for_rr, 3, strlen(arg_for_rr)));
-		printf("R%d\n", interval);
+		printf("RR %d\n", interval);
 		rr(head_proc, interval);
 	}
 
