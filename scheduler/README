@@ -1,0 +1,9 @@
+To compile this project, do:
+
+   make clean; make
+
+After compiling, do this to run.
+
+   ./sched [-s[F, L, S, R]] [-v] <input file> <random file>
+
+Note that when specifying R, you must specify a round robin value. For example, a RR CPU cycle of 20 should be inputted as -sR20
