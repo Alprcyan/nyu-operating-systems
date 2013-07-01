@@ -58,6 +58,11 @@ int main(int argc, char **argv)
 		printf("FCFS\n");
 		fcfs(head_proc);
 	}
+	else if (alg == 'S')
+	{
+		printf("SJF\n");
+		sjf(head_proc);
+	}
 
 	return 1;
 }
