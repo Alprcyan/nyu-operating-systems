@@ -491,7 +491,7 @@ void sjf(ProcNodePtr proc_head)
 	{
 		// Finding all things that are ready.
 		ProcNodePtr proc_ptr = proc_head;
-		printf("(%d)\t", cpu_count);
+		// printf("(%d)\t", cpu_count);
 
 		while (proc_ptr != NULL)
 		{
@@ -506,7 +506,7 @@ void sjf(ProcNodePtr proc_head)
 				new_set->next = NULL;
 
 				ready_set_head = add_to_end(ready_set_head, new_set);
-				printf("\tREADY: %d", proc_ptr->id);
+				// printf("\tREADY: %d", proc_ptr->id);
 			}
 
 			proc_ptr = proc_ptr->next;
@@ -535,7 +535,7 @@ void sjf(ProcNodePtr proc_head)
 					prev_blocked_set_ptr->next = next;
 
 				ready_set_head = add_to_end(ready_set_head, blocked_set_ptr);
-				printf("\tREADY: %d", blocked_set_ptr->proc->id);
+				// printf("\tREADY: %d", blocked_set_ptr->proc->id);
 				blocked_set_ptr = next;
 				continue;
 			}
@@ -555,16 +555,16 @@ void sjf(ProcNodePtr proc_head)
 
 				if (running_set->cpu_time_left == 0)
 				{
-					printf("\tDONE: %d", running_set->proc->id);
+					// printf("\tDONE: %d", running_set->proc->id);
 					done_set_head = add_to_end(done_set_head, running_set);
 				}
 				else
 				{
-					printf("\tEXPIRED: %d", running_set->proc->id);
+					// printf("\tEXPIRED: %d", running_set->proc->id);
 					// add it to the blocked queue
-					printf("\tREM: %d", running_set->cpu_time_left);
+					// printf("\tREM: %d", running_set->cpu_time_left);
 					running_set->io_time_left = rand_num(running_set->proc->io_burst);
-					printf("\tIO: %d", running_set->io_time_left);
+					// printf("\tIO: %d", running_set->io_time_left);
 					blocked_set_head = add_to_end(blocked_set_head, running_set);
 				}
 
@@ -577,7 +577,7 @@ void sjf(ProcNodePtr proc_head)
 		{
 			if (ready_set_head != NULL)
 			{
-				print_sets(ready_set_head);
+				// print_sets(ready_set_head);
 
 				SetNodePtr shortest_set = ready_set_head;
 				SetNodePtr prev_shortest_set = NULL;
@@ -608,7 +608,7 @@ void sjf(ProcNodePtr proc_head)
 				running_set->cpu_burst_left = rand_num(running_set->proc->cpu_burst);
 				// printf("\tRUNNING: %d", running_set->proc->id);
 				// printf("\tCPU: %d", running_set->cpu_burst_left);
-				print_set(running_set);
+				// print_set(running_set);
 			}
 		}
 
@@ -620,7 +620,7 @@ void sjf(ProcNodePtr proc_head)
 			ready_set_ptr = ready_set_ptr->next;
 		}
 
-		printf("\n");
+		// printf("\n");
 		cpu_count++;
 	}
 
