@@ -53,7 +53,7 @@ void print_out(ProcNodePtr proc_head, SetNodePtr set_head, int total_io_wait_tim
 {
 	int ended = 0;
 	int total_cpu_time = 0;
-	int total_turnaround_time;
+	int total_turnaround_time = 0;
 	int number_of_sets = 0;
 	int total_cpu_waiting = 0;
 
