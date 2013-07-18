@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include "randnum.h"
 #include "mmu.h"
 
 char* substr(const char* str, size_t begin, size_t len)
@@ -11,7 +12,8 @@ char* substr(const char* str, size_t begin, size_t len)
 
 int main(int argc, char **argv)
 {
-	char alg = 'C';
+	char alg = 0;
+    int num_of_frames = 0;
 	char *input_file = NULL;
 	char *rand_file = NULL;
 
@@ -45,12 +47,20 @@ int main(int argc, char **argv)
 	        	rand_file = argv[i];
     }
 
-    if (input_file == NULL || rand_file == NULL)
+    if (input_file == NULL || rand_file == NULL || alg == 0 || num_of_frames == 0)
     {
 		printf("Missing arguments.\n");
 		printf("Usage: ./mmu -a[N,l,r,f,s,c,C,a,A] -o[O,P,F,S] -f[int] <input_file> <rand_file>\n");
 		return 0;
 	}
+
+    // Rand file.
+    read_rand_file(rand_file);
+
+    // Memory alg.
+    choose_algorithm(alg);
+    create_frames(num_of_frames);
+    process(input_file);
 
 	return 1;
 }
