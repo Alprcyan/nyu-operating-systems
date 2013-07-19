@@ -26,23 +26,27 @@ int main(int argc, char **argv)
         	alg = 'r';
         else if (strcmp(argv[i], "-af") == 0)
         	alg = 'f';
-        else if (strstr(argv[i], "-as") == 0)
+        else if (strcmp(argv[i], "-as") == 0)
         	alg = 's';
-        else if (strstr(argv[i], "-ac") == 0)
+        else if (strcmp(argv[i], "-ac") == 0)
 			alg = 'a';
-        else if (strstr(argv[i], "-aN") == 0)
+        else if (strcmp(argv[i], "-aN") == 0)
 			alg = 'N';
-        else if (strstr(argv[i], "-aC") == 0)
+        else if (strcmp(argv[i], "-aC") == 0)
 			alg = 'C';
-        else if (strstr(argv[i], "-aA") == 0)
+        else if (strcmp(argv[i], "-aA") == 0)
 			alg = 'A';
 		else if (strstr(argv[i], "-o"))
 		{
-
+            // OPFS
 		}
+        else if (strstr(argv[i], "-f"))
+        {
+            num_of_frames = atoi(substr(argv[i], 2, strlen(argv[i])));
+        }
         else
         	if (input_file == NULL)
-	        	input_file = strdup(argv[i]);
+	        	input_file = argv[i];
 	        else
 	        	rand_file = argv[i];
     }

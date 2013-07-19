@@ -12,6 +12,7 @@ struct MemoryNode
 	int referenced;
 	int modified;
 	int swapped;
+	int used;
 	UT_hash_handle hh; // This is the hash handler.
 } MemoryNode;
 typedef struct MemoryNode* MemoryNodePtr;
@@ -26,7 +27,27 @@ typedef struct FrameNode* FrameNodePtr;
 
 FrameNodePtr frame_head = NULL;
 MemoryNodePtr memory_nodes = NULL;
-char curr_algorithm = NULL;
+char curr_algorithm = 0;
+
+void _print_summary(int unmaps, int maps, int ins, int outs, int zeros)
+{
+
+}
+
+void _print_frames()
+{
+	FrameNodePtr frame_ptr = frame_head;
+	while (frame_ptr != NULL)
+	{
+		if (frame_ptr->node == NULL)
+			printf("* ");
+		else
+			printf("%d ", frame_ptr->node->id);
+
+		frame_ptr = frame_ptr->next;
+	}
+	printf("\n");
+}
 
 MemoryNodePtr _create_memory(int id)
 {
@@ -35,6 +56,7 @@ MemoryNodePtr _create_memory(int id)
 	new_memory->referenced = 0;
 	new_memory->modified = 0;
 	new_memory->swapped = 0;
+	new_memory->used = 0;
 
 	HASH_ADD_INT(memory_nodes, id, new_memory);
 	return new_memory;
@@ -49,11 +71,13 @@ MemoryNodePtr _memory_exists(int id)
 
 MemoryNodePtr _memory_in_frame(int id)
 {
-	FrameNodePtr frame_node_ptr = NULL;
+	FrameNodePtr frame_node_ptr = frame_head;
 	while (frame_node_ptr != NULL)
 	{
-		if (frame_node_ptr->node->id == id)
-			return frame_node_ptr->node;
+
+		if (frame_node_ptr->node != NULL)
+			if (frame_node_ptr->node->id == id)
+				return frame_node_ptr->node;
 
 		frame_node_ptr = frame_node_ptr->next;
 	}
@@ -61,16 +85,45 @@ MemoryNodePtr _memory_in_frame(int id)
 	return NULL;
 }
 
+FrameNodePtr _choose_frame_lru()
+{
+	FrameNodePtr frame_node_ptr = frame_head;
+	FrameNodePtr least_frame_ptr = NULL;
+	int referenced = 9999999;
+	int least = 9999999;
+
+	while (frame_node_ptr != NULL)
+	{
+		// printf("%d-%d\n", frame_node_ptr->node->used, frame_node_ptr->node->referenced);
+		int used_less = (frame_node_ptr->node->used < least);
+		int used_equally = (frame_node_ptr->node->used == least);
+		int referenced_earlier = (frame_node_ptr->node->referenced < referenced);
+		if (referenced_earlier)
+		{
+			least_frame_ptr = frame_node_ptr;
+			least = least_frame_ptr->node->used;
+			referenced = least_frame_ptr->node->referenced;
+		}
+
+		frame_node_ptr = frame_node_ptr->next;
+	}
+
+	return least_frame_ptr;
+}
+
 FrameNodePtr _choose_frame()
 {
-	FrameNodePtr frame_node_ptr = NULL;
+	FrameNodePtr frame_node_ptr = frame_head;
 	while (frame_node_ptr != NULL)
 	{
 		if (frame_node_ptr->node == NULL)
 			return frame_node_ptr;
+
+		frame_node_ptr = frame_node_ptr->next;
 	}
 
-	// Figure it out.
+	// if (curr_algorithm == 'l')
+		return _choose_frame_lru();
 }
 
 void choose_algorithm(char algorithm)
@@ -112,7 +165,7 @@ void process(const char *file)
 		int id = atoi(token);
 		token = strtok_r(NULL, " \n\t", &tokenizer);
 
-		printf("==> inst:\t%d\t%d\n", access_type, id);
+		printf("==> inst: %d %d\n", access_type, id);
 
 		// Lets see if we have a reference
 		// of the node already.
@@ -127,25 +180,26 @@ void process(const char *file)
 				frame_ptr->node = NULL;
 				printf("%d: UNMAP\t%d\t%d\n", (count-1), deref_mem->id, frame_ptr->id);
 
-				// See if swapped bit is set.
-				// If not, add it to the memory. SAY "OUT"
-				if (deref_mem->swapped == 0)
+				// See if we were modified
+				// If so, write it to the memory. SAY "OUT"
+				if (deref_mem->modified > 0)
 				{
 					// Set the swapped bit.
 					deref_mem->swapped = 1;
-					printf("%d: OUT\t%d\t%d\n", (count-1), deref_mem->id, frame_ptr->id);
+					printf("%d: OUT\t\t%d\t%d\n", (count-1), deref_mem->id, frame_ptr->id);
 				}
 
 				// Set the bits.
 				deref_mem->referenced = 0;
 				deref_mem->modified = 0;
+				deref_mem->used = 0;
 			}
 
 			// Let us see if we already have the memory
 			memory_ptr = _memory_exists(id);
 
 			// If it is STILL null, we're going to have to create it.
-			if (memory_ptr == NULL)
+			if (memory_ptr == NULL || memory_ptr->swapped == 0)
 			{
 				// Say "ZERO"
 				printf("%d: ZERO\t\t%d\n", (count-1), frame_ptr->id);
@@ -154,18 +208,21 @@ void process(const char *file)
 			else
 			{
 				// Else we say "IN"
-				printf("%d: IN\t%d\t%d\n", (count-1), memory_ptr->id, frame_ptr->id);
+				printf("%d: IN\t\t%d\t%d\n", (count-1), memory_ptr->id, frame_ptr->id);
 			}
 
 			// And we assign it into the memory_ptr
 			frame_ptr->node = memory_ptr;
-			printf("%d: MAP\t%d\t%d\n", (count-1), memory_ptr->id, frame_ptr->id);
+			printf("%d: MAP\t\t%d\t%d\n", (count-1), memory_ptr->id, frame_ptr->id);
 		}
 
 		// And set the bits compared to access_type
 		memory_ptr->referenced = count;
+		memory_ptr->used = memory_ptr->used + 1;
 		if (access_type == 1)
 			memory_ptr->modified = count;
+
+		_print_frames();
 
 		// Increment instruction
 		count++;
