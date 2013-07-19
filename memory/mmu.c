@@ -29,9 +29,18 @@ FrameNodePtr frame_head = NULL;
 MemoryNodePtr memory_nodes = NULL;
 char curr_algorithm = 0;
 
-void _print_summary(int unmaps, int maps, int ins, int outs, int zeros)
-{
+int inst = 0;
+int unmaps = 0;
+int maps = 0;
+int ins = 0;
+int outs = 0;
+int zeros = 0;
 
+void _print_summary()
+{
+	long long unsigned int cost = 9999999;
+	printf("SUM %d U=%d M=%d I=%d O=%d Z=%d ===> %llu\n",
+		inst, unmaps, maps, ins, outs, zeros, cost);
 }
 
 void _print_frames()
@@ -95,8 +104,8 @@ FrameNodePtr _choose_frame_lru()
 	while (frame_node_ptr != NULL)
 	{
 		// printf("%d-%d\n", frame_node_ptr->node->used, frame_node_ptr->node->referenced);
-		int used_less = (frame_node_ptr->node->used < least);
-		int used_equally = (frame_node_ptr->node->used == least);
+		// int used_less = (frame_node_ptr->node->used < least);
+		// int used_equally = (frame_node_ptr->node->used == least);
 		int referenced_earlier = (frame_node_ptr->node->referenced < referenced);
 		if (referenced_earlier)
 		{
