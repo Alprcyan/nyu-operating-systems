@@ -38,7 +38,16 @@ int main(int argc, char **argv)
 			alg = 'A';
 		else if (strstr(argv[i], "-o"))
 		{
-            // OPFS
+            if (strstr(argv[i], "O"))
+                show_instruction_process();
+            if (strstr(argv[i], "P"))
+                show_memory_table();
+            if (strstr(argv[i], "F"))
+                show_frame_table();
+            if (strstr(argv[i], "S"))
+                show_summary();
+            if (strstr(argv[i], "f"))
+                show_frame_table_after_instruction();
 		}
         else if (strstr(argv[i], "-f"))
         {

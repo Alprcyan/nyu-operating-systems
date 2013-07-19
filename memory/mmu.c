@@ -36,6 +36,13 @@ int ins = 0;
 int outs = 0;
 int zeros = 0;
 
+int print_process = 0;
+int print_memory_table = 0;
+int print_frame_table = 0;
+int print_summary = 0;
+
+int print_frame_table_after_instruction = 0;
+
 void _print_summary()
 {
 	long long unsigned int cost = 9999999;
@@ -135,6 +142,31 @@ FrameNodePtr _choose_frame()
 		return _choose_frame_lru();
 }
 
+void show_frame_table_after_instruction()
+{
+	print_frame_table_after_instruction = 1;
+}
+
+void show_instruction_process()
+{
+	print_process = 1;
+}
+
+void show_memory_table()
+{
+	print_memory_table = 1;
+}
+
+void show_frame_table()
+{
+	print_frame_table = 1;
+}
+
+void show_summary()
+{
+	print_summary = 1;
+}
+
 void choose_algorithm(char algorithm)
 {
 	curr_algorithm = algorithm;
@@ -174,7 +206,8 @@ void process(const char *file)
 		int id = atoi(token);
 		token = strtok_r(NULL, " \n\t", &tokenizer);
 
-		printf("==> inst: %d %d\n", access_type, id);
+		if (print_process)
+			printf("==> inst: %d %d\n", access_type, id);
 
 		// Lets see if we have a reference
 		// of the node already.
@@ -187,7 +220,9 @@ void process(const char *file)
 				// Dereference the node. SAY "UNMAP"
 				MemoryNodePtr deref_mem = frame_ptr->node;
 				frame_ptr->node = NULL;
-				printf("%d: UNMAP\t%d\t%d\n", (count-1), deref_mem->id, frame_ptr->id);
+
+				if (print_process)
+					printf("%d: UNMAP\t%d\t%d\n", (count-1), deref_mem->id, frame_ptr->id);
 
 				// See if we were modified
 				// If so, write it to the memory. SAY "OUT"
@@ -195,7 +230,9 @@ void process(const char *file)
 				{
 					// Set the swapped bit.
 					deref_mem->swapped = 1;
-					printf("%d: OUT\t\t%d\t%d\n", (count-1), deref_mem->id, frame_ptr->id);
+
+					if (print_process)
+						printf("%d: OUT\t\t%d\t%d\n", (count-1), deref_mem->id, frame_ptr->id);
 				}
 
 				// Set the bits.
@@ -210,19 +247,24 @@ void process(const char *file)
 			// If it is STILL null, we're going to have to create it.
 			if (memory_ptr == NULL || memory_ptr->swapped == 0)
 			{
-				// Say "ZERO"
-				printf("%d: ZERO\t\t%d\n", (count-1), frame_ptr->id);
 				memory_ptr = _create_memory(id);
+
+				// Say "ZERO"
+				if (print_process)
+					printf("%d: ZERO\t\t%d\n", (count-1), frame_ptr->id);
 			}
 			else
 			{
 				// Else we say "IN"
-				printf("%d: IN\t\t%d\t%d\n", (count-1), memory_ptr->id, frame_ptr->id);
+				if (print_process)
+					printf("%d: IN\t\t%d\t%d\n", (count-1), memory_ptr->id, frame_ptr->id);
 			}
 
 			// And we assign it into the memory_ptr
 			frame_ptr->node = memory_ptr;
-			printf("%d: MAP\t\t%d\t%d\n", (count-1), memory_ptr->id, frame_ptr->id);
+
+			if (print_process)
+				printf("%d: MAP\t\t%d\t%d\n", (count-1), memory_ptr->id, frame_ptr->id);
 		}
 
 		// And set the bits compared to access_type
@@ -231,9 +273,20 @@ void process(const char *file)
 		if (access_type == 1)
 			memory_ptr->modified = count;
 
-		_print_frames();
+		if (print_frame_table_after_instruction)
+			_print_frames();
 
 		// Increment instruction
 		count++;
 	}
+
+	// if (print_memory_table)
+	// 	_print_memory();
+
+	if (print_frame_table)
+		_print_frames();
+
+	// if (print_summary)
+	// 	_print_summary();
+
 }
