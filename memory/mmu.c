@@ -90,6 +90,22 @@ MemoryNodePtr _memory_exists(int id)
 	return frame_ptr;
 }
 
+MemoryNodePtr _memory_in_frame(int id)
+{
+	FrameNodePtr frame_node_ptr = frame_head;
+	while (frame_node_ptr != NULL)
+	{
+
+		if (frame_node_ptr->node != NULL)
+			if (frame_node_ptr->node->id == id)
+				return frame_node_ptr->node;
+
+		frame_node_ptr = frame_node_ptr->next;
+	}
+
+	return NULL;
+}
+
 void _print_memory()
 {
 	int i = 0;
@@ -103,7 +119,7 @@ void _print_memory()
 			continue;
 		}
 
-		if (!mem_ptr->referenced)
+		if (_memory_in_frame(i) == NULL)
 		{
 			if (mem_ptr->swapped)
 				printf("# ");
@@ -133,22 +149,6 @@ void _print_memory()
 		printf(" ");
 	}
 	printf("\n");
-}
-
-MemoryNodePtr _memory_in_frame(int id)
-{
-	FrameNodePtr frame_node_ptr = frame_head;
-	while (frame_node_ptr != NULL)
-	{
-
-		if (frame_node_ptr->node != NULL)
-			if (frame_node_ptr->node->id == id)
-				return frame_node_ptr->node;
-
-		frame_node_ptr = frame_node_ptr->next;
-	}
-
-	return NULL;
 }
 
 FrameNodePtr _choose_frame_lru()
@@ -206,6 +206,19 @@ FrameNodePtr _choose_frame_fifo()
 	return frame_ptr;
 }
 
+FrameNodePtr _choose_frame_sc()
+{
+	FrameNodePtr frame_ptr = _choose_frame_fifo();
+
+	if (frame_ptr->node->referenced)
+	{
+		frame_ptr->node->referenced = 0;
+		return _choose_frame_sc();
+	}
+
+	return frame_ptr;
+}
+
 FrameNodePtr _choose_frame()
 {
 	FrameNodePtr frame_node_ptr = frame_head;
@@ -223,6 +236,8 @@ FrameNodePtr _choose_frame()
 		return _choose_frame_random();
 	else if (curr_algorithm == 'f')
 		return _choose_frame_fifo();
+	else if (curr_algorithm == 's')
+		return _choose_frame_sc();
 }
 
 void show_frame_table_after_instruction()
