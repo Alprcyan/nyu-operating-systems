@@ -45,7 +45,11 @@ int print_frame_table_after_instruction = 0;
 
 void _print_summary()
 {
-	long long unsigned int cost = 9999999;
+	long long unsigned int cost = 0;
+	cost += (3000*(ins+outs));
+	cost += (400*(maps+unmaps));
+	cost += (150*zeros);
+	cost += (inst);
 	printf("SUM %d U=%d M=%d I=%d O=%d Z=%d ===> %llu\n",
 		inst, unmaps, maps, ins, outs, zeros, cost);
 }
@@ -83,6 +87,47 @@ MemoryNodePtr _memory_exists(int id)
 	MemoryNodePtr frame_ptr;
 	HASH_FIND_INT(memory_nodes, &id, frame_ptr);
 	return frame_ptr;
+}
+
+void _print_memory()
+{
+	int i = 0;
+	for (i = 0; i < 64; i++)
+	{
+		MemoryNodePtr mem_ptr = _memory_exists(i);
+
+		if (mem_ptr == NULL)
+		{
+			printf("* ");
+			continue;
+		}
+
+		if (mem_ptr->referenced == 0)
+		{
+			printf("# ");
+			continue;
+		}
+
+		printf("%d:", i);
+
+		if (mem_ptr->referenced)
+			printf("R");
+		else
+			printf("-");
+
+		if (mem_ptr->modified)
+			printf("M");
+		else
+			printf("-");
+
+		if (mem_ptr->swapped)
+			printf("S");
+		else
+			printf("-");
+
+		printf(" ");
+	}
+	printf("\n");
 }
 
 MemoryNodePtr _memory_in_frame(int id)
@@ -193,18 +238,29 @@ void process(const char *file)
 {
 	char *input = read_file(file);
 
-	char *token;
-	char *tokenizer;
+	char *line_token;
+	char *line_tokenizer;
 
 	int count = 1;
-	token = strtok_r(input, " \n\t", &tokenizer);
-	while (token != NULL)
+	line_token = strtok_r(input, "\n", &line_tokenizer);
+	while (line_token != NULL)
 	{
-		int access_type = atoi(token);
-		token = strtok_r(NULL, " \n\t", &tokenizer);
+		if (strstr(line_token, "#"))
+		{
+			line_token = strtok_r(NULL, "\n", &line_tokenizer);
+			continue;
+		}
 
+		char *token;
+		char *tokenizer;
+
+		token = strtok_r(line_token, " \t", &tokenizer);
+		int access_type = atoi(token);
+
+		token = strtok_r(NULL, " \t", &tokenizer);
 		int id = atoi(token);
-		token = strtok_r(NULL, " \n\t", &tokenizer);
+
+		line_token = strtok_r(NULL, "\n", &line_tokenizer);
 
 		if (print_process)
 			printf("==> inst: %d %d\n", access_type, id);
@@ -222,17 +278,23 @@ void process(const char *file)
 				frame_ptr->node = NULL;
 
 				if (print_process)
+				{
 					printf("%d: UNMAP\t%d\t%d\n", (count-1), deref_mem->id, frame_ptr->id);
+					unmaps++;
+				}
 
 				// See if we were modified
 				// If so, write it to the memory. SAY "OUT"
 				if (deref_mem->modified > 0)
 				{
 					// Set the swapped bit.
-					deref_mem->swapped = 1;
+					deref_mem->swapped = count;
 
 					if (print_process)
+					{
 						printf("%d: OUT\t\t%d\t%d\n", (count-1), deref_mem->id, frame_ptr->id);
+						outs++;
+					}
 				}
 
 				// Set the bits.
@@ -247,24 +309,34 @@ void process(const char *file)
 			// If it is STILL null, we're going to have to create it.
 			if (memory_ptr == NULL || memory_ptr->swapped == 0)
 			{
-				memory_ptr = _create_memory(id);
+				if (memory_ptr == NULL)
+					memory_ptr = _create_memory(id);
 
 				// Say "ZERO"
 				if (print_process)
+				{
 					printf("%d: ZERO\t\t%d\n", (count-1), frame_ptr->id);
+					zeros++;
+				}
 			}
 			else
 			{
 				// Else we say "IN"
 				if (print_process)
+				{
 					printf("%d: IN\t\t%d\t%d\n", (count-1), memory_ptr->id, frame_ptr->id);
+					ins++;
+				}
 			}
 
 			// And we assign it into the memory_ptr
 			frame_ptr->node = memory_ptr;
 
 			if (print_process)
+			{
+				maps++;
 				printf("%d: MAP\t\t%d\t%d\n", (count-1), memory_ptr->id, frame_ptr->id);
+			}
 		}
 
 		// And set the bits compared to access_type
@@ -280,13 +352,14 @@ void process(const char *file)
 		count++;
 	}
 
-	// if (print_memory_table)
-	// 	_print_memory();
+	if (print_memory_table)
+		_print_memory();
 
 	if (print_frame_table)
 		_print_frames();
 
-	// if (print_summary)
-	// 	_print_summary();
+	inst = count-1;
 
+	if (print_summary)
+		_print_summary();
 }
