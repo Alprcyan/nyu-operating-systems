@@ -181,12 +181,29 @@ FrameNodePtr _choose_frame_random()
 {
 	int random_number = rand_num(num_of_frames)-1;
 
-	FrameNodePtr frame_node_ptr = frame_head;
+	FrameNodePtr frame_ptr = frame_head;
 	int i = 0;
 	for (i = 0; i < random_number; i++)
-		frame_node_ptr = frame_node_ptr->next;
+		frame_ptr = frame_ptr->next;
 
-	return frame_node_ptr;
+	return frame_ptr;
+}
+
+int curr_fifo_frame = 0;
+
+FrameNodePtr _choose_frame_fifo()
+{
+	FrameNodePtr frame_ptr = frame_head;
+
+	int i = 0;
+	for (i = 0; i < curr_fifo_frame; i++)
+		frame_ptr = frame_ptr->next;
+
+	curr_fifo_frame++;
+	if (curr_fifo_frame >= num_of_frames)
+		curr_fifo_frame = 0;
+
+	return frame_ptr;
 }
 
 FrameNodePtr _choose_frame()
@@ -202,8 +219,10 @@ FrameNodePtr _choose_frame()
 
 	if (curr_algorithm == 'l')
 		return _choose_frame_lru();
-
-	return _choose_frame_random();
+	else if (curr_algorithm == 'r')
+		return _choose_frame_random();
+	else if (curr_algorithm == 'f')
+		return _choose_frame_fifo();
 }
 
 void show_frame_table_after_instruction()
