@@ -28,6 +28,7 @@ typedef struct FrameNode* FrameNodePtr;
 FrameNodePtr frame_head = NULL;
 MemoryNodePtr memory_nodes = NULL;
 char curr_algorithm = 0;
+int num_of_frames = 0;
 
 int inst = 0;
 int unmaps = 0;
@@ -102,9 +103,13 @@ void _print_memory()
 			continue;
 		}
 
-		if (mem_ptr->referenced == 0)
+		if (!mem_ptr->referenced)
 		{
-			printf("# ");
+			if (mem_ptr->swapped)
+				printf("# ");
+			else
+				printf("* ");
+
 			continue;
 		}
 
@@ -172,6 +177,18 @@ FrameNodePtr _choose_frame_lru()
 	return least_frame_ptr;
 }
 
+FrameNodePtr _choose_frame_random()
+{
+	int random_number = rand_num(num_of_frames)-1;
+
+	FrameNodePtr frame_node_ptr = frame_head;
+	int i = 0;
+	for (i = 0; i < random_number; i++)
+		frame_node_ptr = frame_node_ptr->next;
+
+	return frame_node_ptr;
+}
+
 FrameNodePtr _choose_frame()
 {
 	FrameNodePtr frame_node_ptr = frame_head;
@@ -183,8 +200,10 @@ FrameNodePtr _choose_frame()
 		frame_node_ptr = frame_node_ptr->next;
 	}
 
-	// if (curr_algorithm == 'l')
+	if (curr_algorithm == 'l')
 		return _choose_frame_lru();
+
+	return _choose_frame_random();
 }
 
 void show_frame_table_after_instruction()
@@ -219,6 +238,8 @@ void choose_algorithm(char algorithm)
 
 void create_frames(int count)
 {
+	num_of_frames = count;
+
 	int i = 0;
 	for (i = 0; i < count; i++)
 	{
