@@ -29,7 +29,9 @@ int main(int argc, char **argv)
         else if (strcmp(argv[i], "-as") == 0)
         	alg = 's';
         else if (strcmp(argv[i], "-ac") == 0)
-			alg = 'a';
+			alg = 'c';
+        else if (strcmp(argv[i], "-aa") == 0)
+            alg = 'a';
         else if (strcmp(argv[i], "-aN") == 0)
 			alg = 'N';
         else if (strcmp(argv[i], "-aC") == 0)
