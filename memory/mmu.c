@@ -13,6 +13,7 @@ struct MemoryNode
 	int modified;
 	int swapped;
 	int used;
+	unsigned int aging;
 	UT_hash_handle hh; // This is the hash handler.
 } MemoryNode;
 typedef struct MemoryNode* MemoryNodePtr;
@@ -78,6 +79,7 @@ MemoryNodePtr _create_memory(int id)
 	new_memory->modified = 0;
 	new_memory->swapped = 0;
 	new_memory->used = 0;
+	new_memory->aging = 0;
 
 	HASH_ADD_INT(memory_nodes, id, new_memory);
 	return new_memory;
@@ -224,6 +226,68 @@ FrameNodePtr _choose_frame_clock()
 	return _choose_frame_sc();
 }
 
+void _print_ages()
+{
+	FrameNodePtr frame_ptr = frame_head;
+	int count = 0;
+	while (frame_ptr != NULL)
+	{
+		MemoryNodePtr mem_ptr = frame_ptr->node;
+		if (mem_ptr != NULL)
+			printf("%d: %u", count++, mem_ptr->aging);
+
+		frame_ptr = frame_ptr->next;
+	}
+}
+
+FrameNodePtr _choose_frame_aging()
+{
+	// _print_ages();
+
+	FrameNodePtr frame_ptr = frame_head;
+	while (frame_ptr != NULL)
+	{
+		MemoryNodePtr mem_ptr = frame_ptr->node;
+		if (mem_ptr != NULL)
+		{
+			if (mem_ptr->referenced)
+			{
+				mem_ptr->aging = 0x80000000 | (mem_ptr->aging >> 1);
+				mem_ptr->referenced = 0;
+				// printf("ADDED 1\n");
+			}
+			else
+			{
+				// printf("ADDED 0\n");
+				mem_ptr->aging = mem_ptr->aging >> 1;
+			}
+		}
+
+		frame_ptr = frame_ptr->next;
+	}
+
+	frame_ptr = frame_head;
+	FrameNodePtr least_frame_ptr = frame_head;
+	unsigned int least = ~0;
+
+	while(frame_ptr != NULL)
+	{
+		// printf("%d:%x\n", frame_ptr->id, frame_ptr->node->aging);
+		if (frame_ptr->node->aging < least)
+		{
+			least_frame_ptr = frame_ptr;
+			least = least_frame_ptr->node->aging;
+		}
+
+		frame_ptr = frame_ptr->next;
+	}
+
+	// printf("CHOSE: %d\n", least_frame_ptr->id);
+
+	least_frame_ptr->node->aging = 0;
+	return least_frame_ptr;
+}
+
 FrameNodePtr _choose_frame()
 {
 	FrameNodePtr frame_node_ptr = frame_head;
@@ -243,6 +307,8 @@ FrameNodePtr _choose_frame()
 		return _choose_frame_sc();
 	else if (curr_algorithm == 'c')
 		return _choose_frame_clock();
+	else if (curr_algorithm == 'a')
+		return _choose_frame_aging();
 
 	return _choose_frame_random();
 }
@@ -361,6 +427,7 @@ void process(const char *file)
 				deref_mem->referenced = 0;
 				deref_mem->modified = 0;
 				deref_mem->used = 0;
+				deref_mem->aging = 0;
 			}
 
 			// Let us see if we already have the memory
