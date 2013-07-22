@@ -22,4 +22,4 @@ clean :
 	rm -rf *.o *.a mmu
 
 tar :
-	tar -pczf steven_lu_lab_2.tgz *
+	tar --exclude=*.o --exclude=*.a --exclude=tests --exclude=steven_lu_lab_3.tgz --exclude=testdata.tar.bz2 -pczf steven_lu_lab_3.tgz *

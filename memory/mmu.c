@@ -409,7 +409,7 @@ int current_virtual_clock = 0;
 FrameNodePtr _choose_frame_virtual_clock()
 {
 	MemoryNodePtr mem_ptr = NULL;
-	int i = current_virtual_clock + 1;
+	int i = current_virtual_clock;
 	while (1)
 	{
 		mem_ptr = _memory_exists(i);
@@ -419,7 +419,7 @@ FrameNodePtr _choose_frame_virtual_clock()
 				mem_ptr->referenced = 0;
 			else
 			{
-				current_virtual_clock = i;
+				current_virtual_clock = i + 1;
 				break;
 			}
 		}
