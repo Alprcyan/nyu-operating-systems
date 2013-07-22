@@ -333,6 +333,7 @@ FrameNodePtr _choose_frame_nru()
 	}
 
 	// printf("UNREFERENCED: %d\n", unreferenced);
+	// printf("UNREFERENCED BUT MODIFIED: %d\n", unref_and_modified);
 	// printf("REFERENCED: %d\n", referenced);
 	// printf("MODIFIED: %d\n", modified);
 
@@ -397,6 +398,95 @@ FrameNodePtr _choose_frame_nru()
 	return frame_ptr;
 }
 
+int current_virtual_clock = 0;
+
+FrameNodePtr _choose_frame_virtual_clock()
+{
+	MemoryNodePtr mem_ptr = NULL;
+	int i = current_virtual_clock + 1;
+	while (1)
+	{
+		mem_ptr = _memory_exists(i);
+		if (mem_ptr != NULL && mem_ptr->used)
+		{
+			if (mem_ptr->referenced)
+				mem_ptr->referenced = 0;
+			else
+			{
+				current_virtual_clock = i;
+				break;
+			}
+		}
+
+		if (i >= 64)
+			i = 0;
+		else
+			i++;
+	}
+
+	FrameNodePtr frame_ptr = frame_head;
+	while (frame_ptr != NULL)
+	{
+		if (frame_ptr->node == mem_ptr)
+			break;
+
+		frame_ptr = frame_ptr->next;
+	}
+
+	return frame_ptr;
+}
+
+FrameNodePtr _choose_frame_virtual_aging()
+{
+	// _print_ages();
+
+	int i = 0;
+	for (i = 0; i < 64; i++)
+	{
+		MemoryNodePtr mem_ptr = _memory_exists(i);
+		if (mem_ptr != NULL && mem_ptr->used)
+		{
+			if (mem_ptr->referenced)
+			{
+				mem_ptr->aging = 0x80000000 | (mem_ptr->aging >> 1);
+				mem_ptr->referenced = 0;
+			}
+			else
+			{
+				mem_ptr->aging = mem_ptr->aging >> 1;
+			}
+		}
+	}
+
+	MemoryNodePtr mem_ptr = NULL;
+	MemoryNodePtr least_mem_ptr = NULL;
+
+	unsigned int least = ~0;
+	for (i = 0; i < 64; i++)
+	{
+		mem_ptr = _memory_exists(i);
+		if (mem_ptr != NULL && mem_ptr->used)
+		{
+			if (mem_ptr->aging < least)
+			{
+				least_mem_ptr = mem_ptr;
+				least = mem_ptr->aging;
+			}
+		}
+	}
+
+	FrameNodePtr frame_ptr = frame_head;
+	while (frame_ptr != NULL)
+	{
+		if (frame_ptr->node == least_mem_ptr)
+			break;
+
+		frame_ptr = frame_ptr->next;
+	}
+
+	return frame_ptr;
+}
+
 FrameNodePtr _choose_frame()
 {
 	FrameNodePtr frame_node_ptr = frame_head;
@@ -420,6 +510,10 @@ FrameNodePtr _choose_frame()
 		return _choose_frame_aging();
 	else if (curr_algorithm == 'N')
 		return _choose_frame_nru();
+	else if (curr_algorithm == 'C')
+		return _choose_frame_virtual_clock();
+	else if (curr_algorithm == 'A')
+		return _choose_frame_virtual_aging();
 
 	return _choose_frame_random();
 }
