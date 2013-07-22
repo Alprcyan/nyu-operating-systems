@@ -292,20 +292,21 @@ FrameNodePtr _choose_frame_aging()
 
 int nru_misses = 0;
 
+void _reset_nru_bits()
+{
+	FrameNodePtr frame_ptr = frame_head;
+	while (frame_ptr != NULL)
+	{
+		frame_ptr->node->referenced = 0;
+		frame_ptr = frame_ptr->next;
+	}
+}
+
 FrameNodePtr _choose_frame_nru()
 {
 	nru_misses++;
-	FrameNodePtr frame_ptr = frame_head;
-	if (!(nru_misses % 10))
-	{
-		while (frame_ptr != NULL)
-		{
-			frame_ptr->node->referenced = 0;
-			frame_ptr = frame_ptr->next;
-		}
-	}
 
-	frame_ptr = frame_head;
+	FrameNodePtr frame_ptr = frame_head;
 	int unreferenced = 0;
 	int unref_and_modified = 0;
 	int referenced = 0;
@@ -395,8 +396,13 @@ FrameNodePtr _choose_frame_nru()
 		frame_ptr = frame_ptr->next;
 	}
 
+	if (!(nru_misses % 10))
+		_reset_nru_bits();
+
 	return frame_ptr;
 }
+
+
 
 int current_virtual_clock = 0;
 
