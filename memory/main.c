@@ -50,6 +50,8 @@ int main(int argc, char **argv)
                 show_summary();
             if (strstr(argv[i], "f"))
                 show_frame_table_after_instruction();
+            if (strstr(argv[i], "p"))
+                show_memory_table_after_instruction();
 		}
         else if (strstr(argv[i], "-f"))
         {

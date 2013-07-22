@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <limits.h>
 #include "uthash.h"
 #include "randnum.h"
 #include "readfile.h"
@@ -15,6 +16,7 @@ void show_frame_table();
 void show_summary();
 
 void show_frame_table_after_instruction();
+void show_memory_table_after_instruction();
 
 void choose_algorithm(char algorithm);
 

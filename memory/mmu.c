@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <limits.h>
 #include "uthash.h"
 #include "randnum.h"
 #include "readfile.h"
@@ -44,6 +45,7 @@ int print_frame_table = 0;
 int print_summary = 0;
 
 int print_frame_table_after_instruction = 0;
+int print_memory_table_after_instruction = 0;
 
 void _print_summary()
 {
@@ -288,6 +290,113 @@ FrameNodePtr _choose_frame_aging()
 	return least_frame_ptr;
 }
 
+int nru_misses = 0;
+
+FrameNodePtr _choose_frame_nru()
+{
+	nru_misses++;
+	FrameNodePtr frame_ptr = frame_head;
+	if (!(nru_misses % 10))
+	{
+		while (frame_ptr != NULL)
+		{
+			frame_ptr->node->referenced = 0;
+			frame_ptr = frame_ptr->next;
+		}
+	}
+
+	frame_ptr = frame_head;
+	int unreferenced = 0;
+	int unref_and_modified = 0;
+	int referenced = 0;
+	int modified = 0;
+
+	while (frame_ptr != NULL)
+	{
+		if (!frame_ptr->node->referenced && !frame_ptr->node->modified)
+		{
+			unreferenced++;
+		}
+		else if (!frame_ptr->node->referenced && frame_ptr->node->modified)
+		{
+			unref_and_modified++;
+		}
+		else
+		{
+			if (frame_ptr->node->modified)
+				modified++;
+			else
+				referenced++;
+		}
+
+		frame_ptr = frame_ptr->next;
+	}
+
+	// printf("UNREFERENCED: %d\n", unreferenced);
+	// printf("REFERENCED: %d\n", referenced);
+	// printf("MODIFIED: %d\n", modified);
+
+	int random_number = 0;
+	if (unreferenced)
+		random_number = rand_num(unreferenced);
+	else if (unref_and_modified)
+		random_number = rand_num(unref_and_modified);
+	else if (referenced)
+		random_number = rand_num(referenced);
+	else
+		random_number = rand_num(modified);
+
+	// printf("RANDOM: %d\n", random_number);
+
+	MemoryNodePtr mem_ptr = NULL;
+	int count = 0;
+	int i = 0;
+	for (i = 0; i < 64; i++)
+	{
+		mem_ptr = _memory_exists(i);
+
+		if (mem_ptr == NULL || !mem_ptr->used)
+			continue;
+
+		if (unreferenced)
+		{
+			if (!mem_ptr->referenced && !mem_ptr->modified)
+				count++;
+		}
+		else if (unref_and_modified)
+		{
+			if (!mem_ptr->referenced && mem_ptr->modified)
+				count++;
+		}
+		else if (referenced)
+		{
+			if (!mem_ptr->modified)
+				count++;
+		}
+		else if (modified)
+		{
+			if (mem_ptr->modified)
+				count++;
+		}
+
+		if (count >= random_number)
+			break;
+	}
+
+	// printf("SELECTED: %d\n", mem_ptr->id);
+
+	frame_ptr = frame_head;
+	while (frame_ptr != NULL)
+	{
+		if (frame_ptr->node == mem_ptr)
+			break;
+
+		frame_ptr = frame_ptr->next;
+	}
+
+	return frame_ptr;
+}
+
 FrameNodePtr _choose_frame()
 {
 	FrameNodePtr frame_node_ptr = frame_head;
@@ -309,6 +418,8 @@ FrameNodePtr _choose_frame()
 		return _choose_frame_clock();
 	else if (curr_algorithm == 'a')
 		return _choose_frame_aging();
+	else if (curr_algorithm == 'N')
+		return _choose_frame_nru();
 
 	return _choose_frame_random();
 }
@@ -316,6 +427,11 @@ FrameNodePtr _choose_frame()
 void show_frame_table_after_instruction()
 {
 	print_frame_table_after_instruction = 1;
+}
+
+void show_memory_table_after_instruction()
+{
+	print_memory_table_after_instruction = 1;
 }
 
 void show_instruction_process()
@@ -468,6 +584,9 @@ void process(const char *file)
 		memory_ptr->used = memory_ptr->used + 1;
 		if (access_type == 1)
 			memory_ptr->modified = count;
+
+		if (print_memory_table_after_instruction)
+			_print_memory();
 
 		if (print_frame_table_after_instruction)
 			_print_frames();
