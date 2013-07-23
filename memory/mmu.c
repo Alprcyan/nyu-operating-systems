@@ -7,6 +7,7 @@
 #include "randnum.h"
 #include "readfile.h"
 
+
 struct MemoryNode
 {
 	int id;
@@ -27,8 +28,16 @@ struct FrameNode
 } FrameNode;
 typedef struct FrameNode* FrameNodePtr;
 
+struct FifoNode
+{
+   struct FrameNode* frame;
+   struct FifoNode * next;
+} FifoNode;
+typedef struct FifoNode* FifoNodePtr;
+
 FrameNodePtr frame_head = NULL;
 MemoryNodePtr memory_nodes = NULL;
+FifoNodePtr fifo_head = NULL;
 char curr_algorithm = 0;
 int num_of_frames = 0;
 
@@ -193,21 +202,20 @@ FrameNodePtr _choose_frame_random()
 	return frame_ptr;
 }
 
-int curr_fifo_frame = 0;
-
 FrameNodePtr _choose_frame_fifo()
 {
-	FrameNodePtr frame_ptr = frame_head;
+   FifoNodePtr last_fifo = fifo_head;
+   while(last_fifo->next != NULL)
+      last_fifo = last_fifo->next;
 
-	int i = 0;
-	for (i = 0; i < curr_fifo_frame; i++)
-		frame_ptr = frame_ptr->next;
+   FifoNodePtr new_head = fifo_head->next;
+   FifoNodePtr old_head = fifo_head;
 
-	curr_fifo_frame++;
-	if (curr_fifo_frame >= num_of_frames)
-		curr_fifo_frame = 0;
+   old_head->next = NULL;
+   last_fifo->next = old_head;
+   fifo_head = new_head;
 
-	return frame_ptr;
+   return old_head->frame;
 }
 
 FrameNodePtr _choose_frame_sc()
@@ -223,9 +231,27 @@ FrameNodePtr _choose_frame_sc()
 	return frame_ptr;
 }
 
+int curr_clock_frame = 0;
+
 FrameNodePtr _choose_frame_clock()
 {
-	return _choose_frame_sc();
+	FrameNodePtr frame_ptr = frame_head;
+
+	int i = 0;
+	for (i = 0; i < curr_clock_frame; i++)
+		frame_ptr = frame_ptr->next;
+
+	curr_clock_frame++;
+	if (curr_clock_frame >= num_of_frames)
+		curr_clock_frame = 0;
+
+	if (frame_ptr->node->referenced)
+	{
+		frame_ptr->node->referenced = 0;
+		return _choose_frame_clock();
+	}
+
+   return frame_ptr;
 }
 
 void _print_ages()
@@ -566,6 +592,7 @@ void create_frames(int count)
 	int i = 0;
 	for (i = 0; i < count; i++)
 	{
+
 		FrameNodePtr new_frame = (FrameNodePtr) malloc(sizeof(struct FrameNode));
 		new_frame->id = count - (i+1);
 		new_frame->node = NULL;
@@ -575,6 +602,15 @@ void create_frames(int count)
 			new_frame->next = frame_head;
 
 		frame_head = new_frame;
+
+      FifoNodePtr new_fifo = (FifoNodePtr) malloc(sizeof(struct FifoNode));
+      new_fifo->frame = new_frame;
+      new_fifo->next = NULL;
+
+      if (fifo_head != NULL)
+         new_fifo->next = fifo_head;
+
+      fifo_head = new_fifo;
 	}
 }
 
