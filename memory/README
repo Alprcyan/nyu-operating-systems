@@ -1,0 +1,7 @@
+This is the Memory Management Lab 3 project
+Made by Steven Lu (sjlu@me.com)
+
+To run:
+make clean
+make
+./mmu -a<algorithm> -f<num_of_frames> -o<Options> [file_to_interpret] [random_file]
