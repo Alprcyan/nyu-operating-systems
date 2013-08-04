@@ -28,7 +28,7 @@ typedef struct ProcessNode* ProcessNodePtr;
 
 ProcessNodePtr process_head = NULL;
 
-char alg = 0;
+char alg = 'f';
 int debug = 0;
 
 int total_time = 0;
@@ -124,11 +124,19 @@ ProcessNodePtr _select_node_fcfs()
 	return process_ptr;
 }
 
+ProcessNodePtr _select_node_sstf()
+{
+	return process_head;
+}
+
 ProcessNodePtr _select_node(int count)
 {
 	ProcessNodePtr selected_process = NULL;
 
-	selected_process = _select_node_fcfs();
+	if (alg == 'f')
+		selected_process = _select_node_fcfs();
+	else if (alg == 's')
+		selected_process = _select_node_sstf();
 
 	if (selected_process != NULL)
 	{
@@ -247,6 +255,11 @@ void _process_requests()
 	int count = 1;
 	int curr_track_pos = 0;
 	int track_movement = 0;
+
+	if (debug)
+	{
+		printf("TRACE\n");
+	}
 
 	ProcessNodePtr curr_process = NULL;
 	while (_is_done() == 0)
