@@ -114,33 +114,58 @@ void set_debug(int activate)
 
 ProcessNodePtr _select_node_fcfs()
 {
-
-	ProcessNodePtr process_ptr = process_head;
-	if (process_head != NULL)
-	{
-		process_head = process_head->next;
-	}
-
-	return process_ptr;
-}
-
-ProcessNodePtr _select_node_sstf()
-{
 	return process_head;
 }
 
-ProcessNodePtr _select_node(int count)
+ProcessNodePtr _select_node_sstf(int track)
+{
+	unsigned int least_tracks = ~0;
+	ProcessNodePtr least_process = process_head;
+
+	ProcessNodePtr process_ptr = process_head;
+	while (process_ptr != NULL)
+	{
+		unsigned int distance = abs(process_ptr->node->track_number - track);
+		if (distance < least_tracks)
+		{
+			least_tracks = distance;
+			least_process = process_ptr;
+		}
+
+		process_ptr = process_ptr->next;
+	}
+
+	return least_process;
+}
+
+ProcessNodePtr _select_node(int count, int track)
 {
 	ProcessNodePtr selected_process = NULL;
 
 	if (alg == 'f')
 		selected_process = _select_node_fcfs();
 	else if (alg == 's')
-		selected_process = _select_node_sstf();
+		selected_process = _select_node_sstf(track);
 
 	if (selected_process != NULL)
 	{
 		selected_process->node->start_time = count;
+
+		ProcessNodePtr process_ptr = process_head;
+		ProcessNodePtr process_prev = NULL;
+		while (process_ptr != NULL)
+		{
+			if (process_ptr	== selected_process)
+				break;
+
+			process_prev = process_ptr;
+			process_ptr = process_ptr->next;
+		}
+
+		if (process_prev == NULL)
+			process_head = process_head->next;
+		else
+			process_prev->next = process_ptr->next;
 	}
 
 	return selected_process;
@@ -287,7 +312,7 @@ void _process_requests()
 
 		if (curr_process == NULL)
 		{
-			curr_process = _select_node(count);
+			curr_process = _select_node(count, curr_track_pos);
 
 			if (curr_process != NULL)
 			{
