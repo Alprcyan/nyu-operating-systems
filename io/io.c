@@ -33,6 +33,7 @@ int debug = 0;
 
 int total_time = 0;
 int total_movement = 0;
+int total_tracks = 0;
 
 void _print_requests_table()
 {
@@ -138,6 +139,56 @@ ProcessNodePtr _select_node_sstf(int track)
 	return least_process;
 }
 
+int curr_scan_direction = 1;
+ProcessNodePtr _select_node_scan(int track, int stop)
+{
+	unsigned int shortest_distance = ~0;
+	ProcessNodePtr closest_process = NULL;
+
+	ProcessNodePtr process_ptr = process_head;
+	while (process_ptr)
+	{
+		int distance = process_ptr->node->track_number - track;
+		unsigned int relative_distance = abs(distance);
+
+		if (relative_distance == 0)
+			return process_ptr;
+
+		if (relative_distance < shortest_distance)
+		{
+			if ((distance > 0 && curr_scan_direction == 1)
+				|| (distance < 0 && curr_scan_direction == 0)
+			)
+			{
+				shortest_distance = relative_distance;
+				closest_process = process_ptr;
+			}
+		}
+
+		process_ptr = process_ptr->next;
+	}
+
+	if (closest_process != NULL)
+		return closest_process;
+
+	if (stop)
+		return NULL;
+
+	int track_to_start_at = 0;
+	if (curr_scan_direction == 1)
+	{
+		curr_scan_direction = 0;
+		track_to_start_at = 512;
+	}
+	else
+	{
+		curr_scan_direction = 1;
+		track_to_start_at = 0;
+	}
+
+	return _select_node_scan(track_to_start_at, 1);
+}
+
 ProcessNodePtr _select_node(int count, int track)
 {
 	ProcessNodePtr selected_process = NULL;
@@ -146,6 +197,8 @@ ProcessNodePtr _select_node(int count, int track)
 		selected_process = _select_node_fcfs();
 	else if (alg == 's')
 		selected_process = _select_node_sstf(track);
+	else if (alg == 'S')
+		selected_process = _select_node_scan(track, 0);
 
 	if (selected_process != NULL)
 	{
@@ -256,6 +309,8 @@ void _process_file(const char *file)
 	char *line_token;
 	char *line_tokenizer;
 
+	int max_tracks = 0;
+
 	line_token = strtok_r(input, "\n", &line_tokenizer);
 	int i = 0;
 	while (line_token != NULL)
@@ -275,11 +330,19 @@ void _process_file(const char *file)
 		token = strtok_r(NULL, " \t", &tokenizer);
 		int track_position = atoi(token);
 
+		// need to find the max track here...
+		if (track_position > max_tracks)
+		{
+			max_tracks = track_position;
+		}
+
 		_create_request_node(i, arrival, track_position);
 
 		line_token = strtok_r(NULL, "\n", &line_tokenizer);
 		i++;
 	}
+
+	total_tracks = max_tracks;
 }
 
 void _add_new_processes(int count)
