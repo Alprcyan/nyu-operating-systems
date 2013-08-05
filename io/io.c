@@ -166,6 +166,22 @@ ProcessNodePtr _select_node(int count, int track)
 			process_head = process_head->next;
 		else
 			process_prev->next = process_ptr->next;
+
+		// If we're already here, don't bother to send it
+		// back a second time. Just give it off here.
+		if (selected_process->node->track_number == track)
+		{
+			selected_process->node->completion_time = count;
+			if (debug)
+			{
+				printf(
+					"%d:\t%d finish %d\n",
+					count,
+					selected_process->node->id,
+					selected_process->node->completion_time - selected_process->node->arrival_time
+				);
+			}
+		}
 	}
 
 	return selected_process;
