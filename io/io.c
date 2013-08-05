@@ -167,6 +167,17 @@ ProcessNodePtr _select_node(int count, int track)
 		else
 			process_prev->next = process_ptr->next;
 
+		if (debug)
+		{
+			printf(
+				"%d:\t%d issue %d %d\n",
+				count,
+				selected_process->node->id,
+				selected_process->node->track_number,
+				track
+			);
+		}
+
 		// If we're already here, don't bother to send it
 		// back a second time. Just give it off here.
 		if (selected_process->node->track_number == track)
@@ -329,20 +340,6 @@ void _process_requests()
 		if (curr_process == NULL)
 		{
 			curr_process = _select_node(count, curr_track_pos);
-
-			if (curr_process != NULL)
-			{
-				if (debug)
-				{
-					printf(
-						"%d:\t%d issue %d %d\n",
-						count,
-						curr_process->node->id,
-						curr_process->node->track_number,
-						curr_track_pos
-					);
-				}
-			}
 		}
 
 		if (curr_process != NULL)
