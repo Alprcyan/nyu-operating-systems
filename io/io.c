@@ -178,7 +178,7 @@ ProcessNodePtr _select_node_scan(int track, int stop)
 	if (curr_scan_direction == 1)
 	{
 		curr_scan_direction = 0;
-		track_to_start_at = 512;
+		track_to_start_at = total_tracks;
 	}
 	else
 	{
@@ -220,6 +220,46 @@ ProcessNodePtr _select_node_cscan(int track, int stop)
 	return _select_node_cscan(0, 1);
 }
 
+ProcessNodePtr _select_node_fscan(int track)
+{
+	unsigned int shortest_distance = ~0;
+	ProcessNodePtr closest_process = NULL;
+
+	int lowest_track_to_zero = ~0;
+	ProcessNodePtr lowest_track = NULL;
+
+	ProcessNodePtr process_ptr = process_head;
+	while (process_ptr)
+	{
+		int distance = process_ptr->node->track_number - track;
+
+		if (distance == 0)
+			return process_ptr;
+
+		if (distance > 0 && distance < shortest_distance)
+		{
+			shortest_distance = distance;
+			closest_process = process_ptr;
+		}
+
+		if (process_ptr->node->track_number < lowest_track_to_zero)
+		{
+			lowest_track_to_zero = process_ptr->node->track_number;
+			lowest_track = process_ptr;
+		}
+
+		process_ptr = process_ptr->next;
+	}
+
+	if (closest_process != NULL)
+		return closest_process;
+
+	if (lowest_track != NULL)
+		return lowest_track;
+
+	return NULL;
+}
+
 ProcessNodePtr _select_node(int count, int track)
 {
 	ProcessNodePtr selected_process = NULL;
@@ -232,6 +272,8 @@ ProcessNodePtr _select_node(int count, int track)
 		selected_process = _select_node_scan(track, 0);
 	else if (alg == 'C')
 		selected_process = _select_node_cscan(track, 0);
+	else if (alg == 'F')
+		selected_process = _select_node_fscan(track);
 
 	if (selected_process != NULL)
 	{
