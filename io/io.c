@@ -23,6 +23,7 @@ struct ProcessNode
 {
 	struct RequestNode* node;
 	struct ProcessNode* next;
+	int queue;
 } ProcessNode;
 typedef struct ProcessNode* ProcessNodePtr;
 
@@ -220,33 +221,58 @@ ProcessNodePtr _select_node_cscan(int track, int stop)
 	return _select_node_cscan(0, 1);
 }
 
-ProcessNodePtr _select_node_fscan(int track)
-{
-	unsigned int shortest_distance = ~0;
-	ProcessNodePtr closest_process = NULL;
+int curr_fscan_direction = 1;
+int curr_fscan_queue = 0;
 
-	unsigned int lowest_track_to_zero = ~0;
-	ProcessNodePtr lowest_track = NULL;
+int _size_of_queue()
+{
+	int queue_size = 0;
 
 	ProcessNodePtr process_ptr = process_head;
 	while (process_ptr)
 	{
-		int distance = process_ptr->node->track_number - track;
+		if (process_ptr->queue == curr_fscan_queue)
+			queue_size++;
 
-		if (distance == 0)
-			return process_ptr;
+		process_ptr = process_ptr->next;
+	}
 
-		if (distance > 0 && distance < shortest_distance)
+	return queue_size;
+}
+
+ProcessNodePtr _select_node_fscan(int track)
+{
+	int queue_size = _size_of_queue();
+	if (queue_size == 0)
+	{
+		curr_fscan_queue++;
+		curr_fscan_direction = 1;
+	}
+
+	unsigned int shortest_distance = ~0;
+	ProcessNodePtr closest_process = NULL;
+
+	ProcessNodePtr process_ptr = process_head;
+	while (process_ptr)
+	{
+		if (process_ptr->queue == curr_fscan_queue)
 		{
-			shortest_distance = distance;
-			closest_process = process_ptr;
-		}
+			int distance = process_ptr->node->track_number - track;
+			unsigned int relative_distance = abs(distance);
 
-		unsigned int relative_distance = abs(distance);
-		if (relative_distance < lowest_track_to_zero)
-		{
-			lowest_track_to_zero = relative_distance;
-			lowest_track = process_ptr;
+			if (relative_distance == 0)
+				return process_ptr;
+
+			if (relative_distance < shortest_distance)
+			{
+				if ((distance > 0 && curr_fscan_direction == 1)
+					|| (distance < 0 && curr_fscan_direction == 0)
+				)
+				{
+					shortest_distance = relative_distance;
+					closest_process = process_ptr;
+				}
+			}
 		}
 
 		process_ptr = process_ptr->next;
@@ -255,17 +281,28 @@ ProcessNodePtr _select_node_fscan(int track)
 	if (closest_process != NULL)
 		return closest_process;
 
-	if (lowest_track != NULL)
-		return lowest_track;
+	int track_to_start_at = 0;
+	if (curr_fscan_direction == 1)
+	{
+		curr_fscan_direction = 0;
+		track_to_start_at = total_tracks;
+	}
+	else
+	{
+		curr_fscan_direction = 1;
+		track_to_start_at = 0;
+	}
 
-	return NULL;
+	return _select_node_fscan(track_to_start_at);
 }
 
 ProcessNodePtr _select_node(int count, int track)
 {
 	ProcessNodePtr selected_process = NULL;
 
-	if (alg == 'f')
+	if (process_head == NULL)
+		selected_process = NULL;
+	else if (alg == 'f')
 		selected_process = _select_node_fcfs();
 	else if (alg == 's')
 		selected_process = _select_node_sstf(track);
@@ -334,6 +371,7 @@ void _create_process_node(RequestNodePtr request_node)
 {
 	ProcessNodePtr new_process = (ProcessNodePtr) malloc(sizeof(struct ProcessNode));
 	new_process->node = request_node;
+	new_process->queue = curr_fscan_queue + 1;
 	new_process->next = NULL;
 
 	if (process_head == NULL)
