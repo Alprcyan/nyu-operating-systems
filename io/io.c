@@ -225,7 +225,7 @@ ProcessNodePtr _select_node_fscan(int track)
 	unsigned int shortest_distance = ~0;
 	ProcessNodePtr closest_process = NULL;
 
-	int lowest_track_to_zero = ~0;
+	unsigned int lowest_track_to_zero = ~0;
 	ProcessNodePtr lowest_track = NULL;
 
 	ProcessNodePtr process_ptr = process_head;
@@ -242,9 +242,10 @@ ProcessNodePtr _select_node_fscan(int track)
 			closest_process = process_ptr;
 		}
 
-		if (process_ptr->node->track_number < lowest_track_to_zero)
+		unsigned int relative_distance = abs(distance);
+		if (relative_distance < lowest_track_to_zero)
 		{
-			lowest_track_to_zero = process_ptr->node->track_number;
+			lowest_track_to_zero = relative_distance;
 			lowest_track = process_ptr;
 		}
 
