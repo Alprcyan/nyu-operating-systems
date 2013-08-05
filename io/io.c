@@ -183,6 +183,7 @@ ProcessNodePtr _select_node(int count, int track)
 		if (selected_process->node->track_number == track)
 		{
 			selected_process->node->completion_time = count;
+
 			if (debug)
 			{
 				printf(
@@ -192,6 +193,8 @@ ProcessNodePtr _select_node(int count, int track)
 					selected_process->node->completion_time - selected_process->node->arrival_time
 				);
 			}
+
+			return _select_node(count, track);
 		}
 	}
 
